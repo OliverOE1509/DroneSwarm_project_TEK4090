@@ -4,7 +4,7 @@
 [![Test](https://github.com/cyberbotics/webots-docker/workflows/Test/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3ATest)
 [![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
 
-EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette imaget på Docker hub: https://hub.docker.com/r/cyberbotics/webots. For å starte webots inne i containeren, måtte jeg kjøre containeren med GPU akselerasjon, måtte da installere nvidia-docker2. Det er fordi jeg er på Linux. Har ikke satt meg inn i hvordan det funker på Windows, men skal funke greit med desktop og litt veivisning fra chatgpt. Dokumentasjonen til webots om docker bruk, dekker bare for linux. Linken til Webots dokumentasjon er den første linken du ser under.
+EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette imaget på Docker hub: https://hub.docker.com/r/cyberbotics/webots. For å starte webots inne i containeren, måtte jeg kjøre containeren med GPU akselerasjon, måtte da installere nvidia-docker2. Det er fordi jeg er på Linux Ubuntu. Har ikke satt meg inn i hvordan det funker på Windows, men skal funke greit med desktop og litt veivisning fra chatgpt. Dokumentasjonen til webots om docker bruk, dekker bare for linux. Linken til Webots dokumentasjon er den første linken du ser under.
 
 This repository is used to create a Docker image with Webots already pre-installed.
 To use the already available image please follow the [Webots installation instructions](https://cyberbotics.com/doc/guide/installation-procedure#installing-the-docker-image).
