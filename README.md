@@ -9,13 +9,13 @@ EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette 
 
 For å builde docker filen kjører jeg
 ``` bash
-Skal sette inn kommando senere
+docker build -t webots-drone .
 ```
 
 
-Jeg åpner hele kontaineren på denne måten
+Jeg åpner hele kontaineren på denne måten. Dette skal du kjøre når du har /path/to/dir/DroneSwarm_Project_TEK4090 som working directory 
 ``` bash
-Skal sette inn kommando senere
+docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/project   webots-drone
 ```
 
 
