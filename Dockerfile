@@ -29,6 +29,28 @@ ENV QTWEBENGINE_DISABLE_SANDBOX=1
 ENV WEBOTS_HOME /usr/local/webots
 ENV PATH /usr/local/webots:${PATH}
 
+# Install ROS 2 Humble
+RUN apt-get update && \
+    apt-get install -y software-properties-common curl gnupg2 lsb-release && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+        -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+        http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/ros2.list && \
+    apt-get update && \
+    apt-get install -y ros-humble-desktop python3-argcomplete && \
+    rm -rf /var/lib/apt/lists/*
+
+# Source ROS 2 by default
+SHELL ["/bin/bash", "-c"]
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+RUN apt-get update && \
+    apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
 # Enable OpenGL capabilities
 ENV NVIDIA_DRIVER_CAPABILITIES graphics,compute,utility
 
