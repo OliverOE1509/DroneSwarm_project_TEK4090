@@ -4,8 +4,20 @@
 [![Test](https://github.com/cyberbotics/webots-docker/workflows/Test/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3ATest)
 [![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
 
-EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette imaget på Docker hub: https://hub.docker.com/r/cyberbotics/webots. For å starte webots inne i containeren, måtte jeg kjøre containeren med GPU akselerasjon, måtte da installere nvidia-docker2. Det er fordi jeg er på Linux Ubuntu. Har ikke satt meg inn i hvordan det funker på Windows, men skal funke greit med desktop og litt veivisning fra chatgpt. Dokumentasjonen til webots om docker bruk, dekker bare for linux. Linken til Webots dokumentasjon er den første linken du ser under.
+This is a cloned repository of: https://github.com/cyberbotics/webots-docker
 
+The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker. To use the docker container clone the repo
+
+''' bash
+git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
+cd DroneSwarm_project_TEK4090
+'''
+
+If you want GPU acceleration, just pass this  
+''' bash
+--gpus all
+'''
+into the run command. To do this you need to install '''nvidia-docker2''' from the [official website](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 
 For å builde docker filen kjører jeg
 ``` bash
