@@ -5,21 +5,40 @@
 [![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
 
 This is a cloned repository of: https://github.com/cyberbotics/webots-docker
+The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker in a ubuntu 22.04 environment. 
 
-The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker. To use the docker container clone the repo
 
-''' bash
+The first you should do if your not on a linux system, is to [install virtual box](https://www.virtualbox.org/wiki/Downloads) and [download a ubuntu image](https://ubuntu.com/download/desktop) to mount on a virtual machine for example. Then you have to [download docker](https://cyberbotics.com/doc/guide/installation-procedure?tab-os=macos#installing-the-docker-image)
+
+The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker in a ubuntu 22.04 environment. In this environment we will run a swarm simulation using webots as the simulation engine and ROS2 to implement the logic and hardware internals of our drone. The goal of the swarm will be to play capture the flag
+
+``` bash
 git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
 cd DroneSwarm_project_TEK4090
-'''
+```
 
-If you want GPU acceleration, just pass this  
-''' bash
---gpus all
-'''
-into the run command. To do this you need to install '''nvidia-docker2''' from the [official website](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+##What is where?
 
-For å builde docker filen kjører jeg
+#Directory structure
+Here is the overall directory structure (this will change)
+.
+└── drone_swarm_ctf
+    ├── controllers
+    │   ├── drone_controller
+    │   └── mavic_controller
+    └── worlds
+
+#Important files
+drone_swarm_ctf/worlds//
+└── mavic_2_pro.wbt
+
+This is the world file you open when starting the simulation. It has a drone already spawned
+
+
+./Dockerfile
+
+This is the dockerfile you build, which opens to container. Dismiss the Dockerfiles "Dockerfile_ikpy" and "Dockerfile_webots_cloud"
+
 ``` bash
 docker build -t webots-drone .
 ```
