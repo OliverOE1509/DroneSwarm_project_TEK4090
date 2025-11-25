@@ -21,26 +21,44 @@ cd DroneSwarm_project_TEK4090
 
 # Directory structure
 Here is the overall directory structure (this will change)
+``` bash
 .
-└── drone_swarm_ctf
-    ├── controllers
-    │   ├── drone_controller
-    │   └── mavic_controller
-    └── worlds
+├── Dockerfile
+├── Dockerfile_ikpy
+├── Dockerfile_webots_cloud
+├── drone_swarm_ctf
+│   ├── controllers
+│   │   ├── drone_controller
+│   │   └── mavic_controller
+│   └── worlds
+│       ├── drone_navigation.wbt
+│       └── mavic_2_pro.wbt
+├── README.md
+├── simple_test.wbt
+├── tree.txt
+└── Webots-R2025a.conf
+```
+
+
+6 directories, 9 files
 
 # Important files
+``` bash
 drone_swarm_ctf/worlds//
 └── mavic_2_pro.wbt
+```
 
 This is the world file you open when starting the simulation. It has a drone already spawned
-
+``` bash
 drone_swarm_ctf/controllers/mavic_controller//
 └── mavic_controller.py
+```
 
 This is the controller to said drone already spawned inside the world file
 
-
+``` bash
 ./Dockerfile
+```
 
 This is the dockerfile you build, which opens to container. Dismiss the Dockerfiles "Dockerfile_ikpy" and "Dockerfile_webots_cloud"
 
