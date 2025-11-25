@@ -73,6 +73,11 @@ docker build -t webots-drone .
 docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/project   webots-drone
 ```
 
+If you dont have an nvidia gpu, you can dismiss this from the command above
+``` bash
+--gpus=all
+```
+
 
 
 ## Ignore everything after this line
