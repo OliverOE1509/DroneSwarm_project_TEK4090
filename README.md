@@ -17,9 +17,9 @@ git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
 cd DroneSwarm_project_TEK4090
 ```
 
-##What is where?
+## What is where?
 
-#Directory structure
+# Directory structure
 Here is the overall directory structure (this will change)
 .
 └── drone_swarm_ctf
@@ -28,27 +28,36 @@ Here is the overall directory structure (this will change)
     │   └── mavic_controller
     └── worlds
 
-#Important files
+# Important files
 drone_swarm_ctf/worlds//
 └── mavic_2_pro.wbt
 
 This is the world file you open when starting the simulation. It has a drone already spawned
+
+drone_swarm_ctf/controllers/mavic_controller//
+└── mavic_controller.py
+
+This is the controller to said drone already spawned inside the world file
 
 
 ./Dockerfile
 
 This is the dockerfile you build, which opens to container. Dismiss the Dockerfiles "Dockerfile_ikpy" and "Dockerfile_webots_cloud"
 
+
+## Build the Image
 ``` bash
 docker build -t webots-drone .
 ```
 
-
-Jeg åpner hele kontaineren på denne måten. Dette skal du kjøre når du har /path/to/dir/DroneSwarm_Project_TEK4090 som working directory 
+## Run the container from the image
 ``` bash
 docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/project   webots-drone
 ```
 
+
+
+## Ignore everything after this line
 
 This repository is used to create a Docker image with Webots already pre-installed.
 To use the already available image please follow the [Webots installation instructions](https://cyberbotics.com/doc/guide/installation-procedure#installing-the-docker-image).
