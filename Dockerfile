@@ -34,9 +34,6 @@ ENV PATH /usr/local/webots:${PATH}
 RUN mkdir -p ./ros2_ws/src
 COPY ros2_ws ./ros2_ws
 
-
-
-
 # Install ROS 2 Humble
 RUN apt-get update && \
     apt-get install -y software-properties-common curl gnupg2 lsb-release && \
