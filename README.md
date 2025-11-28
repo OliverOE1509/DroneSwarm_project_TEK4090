@@ -17,44 +17,26 @@ git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
 cd DroneSwarm_project_TEK4090
 ```
 
-## What is where?
-
 # Directory structure
 Here is the overall directory structure (this will change)
 ``` bash
 .
 ├── Dockerfile
-├── Dockerfile_ikpy
-├── Dockerfile_webots_cloud
-├── drone_swarm_ctf
-│   ├── controllers
-│   │   ├── drone_controller
-│   │   └── mavic_controller
-│   └── worlds
-│       ├── drone_navigation.wbt
-│       └── mavic_2_pro.wbt
 ├── README.md
-├── simple_test.wbt
-├── tree.txt
-└── Webots-R2025a.conf
+└── ros2_ws
+    ├── Webots-R2025a.conf
+    └── src
+        └── drone_swarm_ctf_package
+            ├── controllers
+            ├── package.xml
+            └── worlds
 ```
 
 
 6 directories, 9 files
 
 # Important files
-``` bash
-drone_swarm_ctf/worlds//
-└── mavic_2_pro.wbt
-```
-
-This is the world file you open when starting the simulation. It has a drone already spawned
-``` bash
-drone_swarm_ctf/controllers/mavic_controller//
-└── mavic_controller.py
-```
-
-This is the controller to said drone already spawned inside the world file
+Will give more details later
 
 ``` bash
 ./Dockerfile
@@ -70,57 +52,19 @@ docker build -t webots-drone .
 
 ## Run the container from the image 
 ``` bash
-docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/usr/local/ros2_ws/src   webots-drone
+docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/ros2_ws/:/usr/local/ros2_ws   webots-drone
 ```
-or
-``` bash
-docker run -it   --gpus all -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v "$(pwd)/drone_swarm_ctf:/project"   webots-drone
-```
+
 If you dont have an nvidia gpu, you can dismiss this from the command above
 ``` bash
 --gpus=all
 ```
 
 
-
-## Ignore everything after this line
-
-This repository is used to create a Docker image with Webots already pre-installed.
-To use the already available image please follow the [Webots installation instructions](https://cyberbotics.com/doc/guide/installation-procedure#installing-the-docker-image).
-
-
-## Build the Image
-
-Use the following command to build the docker container from the Dockerfile:
-
+Also, if you want to open webots inside  the container to get an interface to see the simulation, then you need to pass access for the container to use your screen. This is done with
 ``` bash
-docker build . --file Dockerfile --tag cyberbotics/webots:latest --build-arg WEBOTS_PACKAGE_PREFIX=_ubuntu-22.04
+-v /tmp/.X11-unix:/tmp/.X11-unix:rw
 ```
 
-## Build the Webots.Cloud Images
-
-Use the following command to build the docker container from the Dockerfile_webots_cloud:
-
-``` bash
-docker build . --file Dockerfile_webots_cloud --tag cyberbotics/webots.cloud:latest
-```
-
-## Run a Docker container from the Image
-
-You can run the previously built image with:
-
-``` bash
-docker run -it cyberbotics/webots:latest /bin/bash
-```
-
-## Clean the temporary Images
-
-You can run the following command to remove **all** temporary images:
-
-``` bash
-docker system prune
-```
-
-
-
+If you are windows, I recommend to use a virtual machine and keep the settings just mentioned. If you are macos, you (WILL ADD LATER)
 
