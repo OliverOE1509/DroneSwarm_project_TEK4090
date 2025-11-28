@@ -17,8 +17,6 @@ git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
 cd DroneSwarm_project_TEK4090
 ```
 
-## What is where?
-
 # Directory structure
 Here is the overall directory structure (this will change)
 ``` bash
