@@ -4,44 +4,67 @@
 [![Test](https://github.com/cyberbotics/webots-docker/workflows/Test/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3ATest)
 [![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
 
-EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette imaget på Docker hub: https://hub.docker.com/r/cyberbotics/webots. For å starte webots inne i containeren, måtte jeg kjøre containeren med GPU akselerasjon, måtte da installere nvidia-docker2. Det er fordi jeg er på Linux Ubuntu. Har ikke satt meg inn i hvordan det funker på Windows, men skal funke greit med desktop og litt veivisning fra chatgpt. Dokumentasjonen til webots om docker bruk, dekker bare for linux. Linken til Webots dokumentasjon er den første linken du ser under.
+This is a cloned repository of: https://github.com/cyberbotics/webots-docker
+The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker in a ubuntu 22.04 environment. 
 
-This repository is used to create a Docker image with Webots already pre-installed.
-To use the already available image please follow the [Webots installation instructions](https://cyberbotics.com/doc/guide/installation-procedure#installing-the-docker-image).
+
+The first you should do if your not on a linux system, is to [install virtual box](https://www.virtualbox.org/wiki/Downloads) and [download a ubuntu image](https://ubuntu.com/download/desktop) to mount on a virtual machine for example. Then you have to [download docker](https://cyberbotics.com/doc/guide/installation-procedure?tab-os=macos#installing-the-docker-image)
+
+The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker in a ubuntu 22.04 environment. In this environment we will run a swarm simulation using webots as the simulation engine and ROS2 to implement the logic and hardware internals of our drone. The goal of the swarm will be to play capture the flag
+
+``` bash
+git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
+cd DroneSwarm_project_TEK4090
+```
+
+# Directory structure
+Here is the overall directory structure (this will change)
+``` bash
+.
+├── Dockerfile
+├── README.md
+└── ros2_ws
+    ├── Webots-R2025a.conf
+    └── src
+        └── drone_swarm_ctf_package
+            ├── controllers
+            ├── package.xml
+            └── worlds
+```
+
+
+6 directories, 9 files
+
+# Important files
+Will give more details later
+
+``` bash
+./Dockerfile
+```
+
+This is the dockerfile you build, which opens to container. Dismiss the Dockerfiles "Dockerfile_ikpy" and "Dockerfile_webots_cloud"
 
 
 ## Build the Image
-
-Use the following command to build the docker container from the Dockerfile:
-
 ``` bash
-docker build . --file Dockerfile --tag cyberbotics/webots:latest --build-arg WEBOTS_PACKAGE_PREFIX=_ubuntu-22.04
+docker build -t webots-drone .
 ```
 
-## Build the Webots.Cloud Images
-
-Use the following command to build the docker container from the Dockerfile_webots_cloud:
-
+## Run the container from the image 
 ``` bash
-docker build . --file Dockerfile_webots_cloud --tag cyberbotics/webots.cloud:latest
+docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/ros2_ws/:/usr/local/ros2_ws   webots-drone
 ```
 
-## Run a Docker container from the Image
-
-You can run the previously built image with:
-
+If you dont have an nvidia gpu, you can dismiss this from the command above
 ``` bash
-docker run -it cyberbotics/webots:latest /bin/bash
-```
-
-## Clean the temporary Images
-
-You can run the following command to remove **all** temporary images:
-
-``` bash
-docker system prune
+--gpus=all
 ```
 
 
+Also, if you want to open webots inside  the container to get an interface to see the simulation, then you need to pass access for the container to use your screen. This is done with
+``` bash
+-v /tmp/.X11-unix:/tmp/.X11-unix:rw
+```
 
+If you are windows, I recommend to use a virtual machine and keep the settings just mentioned. If you are macos, you (WILL ADD LATER)
 
