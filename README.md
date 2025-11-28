@@ -36,18 +36,7 @@ Here is the overall directory structure (this will change)
 6 directories, 9 files
 
 # Important files
-``` bash
-drone_swarm_ctf/worlds//
-└── mavic_2_pro.wbt
-```
-
-This is the world file you open when starting the simulation. It has a drone already spawned
-``` bash
-drone_swarm_ctf/controllers/mavic_controller//
-└── mavic_controller.py
-```
-
-This is the controller to said drone already spawned inside the world file
+Will give more details later
 
 ``` bash
 ./Dockerfile
