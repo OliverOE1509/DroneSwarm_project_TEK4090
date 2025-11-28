@@ -17,17 +17,25 @@ FROM ${BASE_IMAGE}
 # Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
+
+
 # Install Webots runtime dependencies
 RUN apt-get update && apt-get install --yes wget xvfb locales vim && rm -rf /var/lib/apt/lists/ && \
   wget https://raw.githubusercontent.com/cyberbotics/webots/master/scripts/install/linux_runtime_dependencies.sh && \
   chmod +x linux_runtime_dependencies.sh && ./linux_runtime_dependencies.sh && rm ./linux_runtime_dependencies.sh && rm -rf /var/lib/apt/lists/
 
 # Install Webots
-WORKDIR /usr/local
+WORKDIR /usr/local/
 COPY --from=downloader /webots /usr/local/webots/
 ENV QTWEBENGINE_DISABLE_SANDBOX=1
 ENV WEBOTS_HOME /usr/local/webots
 ENV PATH /usr/local/webots:${PATH}
+
+RUN mkdir -p ./ros2_ws/src
+COPY ros2_ws ./ros2_ws
+
+
+
 
 # Install ROS 2 Humble
 RUN apt-get update && \
@@ -44,6 +52,13 @@ RUN apt-get update && \
 # Source ROS 2 by default
 SHELL ["/bin/bash", "-c"]
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+
+# Installing webots-ros2 package
+RUN source /opt/ros/humble/setup.bash && \
+    apt-get update && apt-get install -y "ros-humble-webots-ros2*"  
+
+
 
 RUN apt-get update && \
     apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
@@ -66,8 +81,6 @@ RUN apt-get update && apt-get install --yes \
     python3-pip \
     && rm -rf /var/lib/apt/lists/
 
-# Install Python packages needed for drone control
-RUN pip3 install numpy scipy matplotlib
 
 # Finally open a bash command to let the user interact
 CMD ["/bin/bash"]
