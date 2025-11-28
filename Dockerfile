@@ -4,13 +4,13 @@ FROM ${BASE_IMAGE} AS downloader
 # Determine Webots version to be used and set default argument
 ARG WEBOTS_VERSION=R2025a
 ARG WEBOTS_PACKAGE_PREFIX=
-
 # Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install --yes wget bzip2 && rm -rf /var/lib/apt/lists/ && \
  wget https://github.com/cyberbotics/webots/releases/download/$WEBOTS_VERSION/webots-$WEBOTS_VERSION-x86-64$WEBOTS_PACKAGE_PREFIX.tar.bz2 && \
  tar xjf webots-*.tar.bz2 && rm webots-*.tar.bz2
+
 
 FROM ${BASE_IMAGE}
 
@@ -29,8 +29,9 @@ ENV QTWEBENGINE_DISABLE_SANDBOX=1
 ENV WEBOTS_HOME /usr/local/webots
 ENV PATH /usr/local/webots:${PATH}
 
-RUN mkdir -p ./ros2_ws/src
+#Copy ROS2 workspaces
 COPY ros2_ws ./ros2_ws
+COPY ros2_ws_TEST ./ros2_ws_TEST
 
 # Install ROS 2 Humble
 RUN apt-get update && \
@@ -42,40 +43,33 @@ RUN apt-get update && \
         > /etc/apt/sources.list.d/ros2.list && \
     apt-get update && \
     apt-get install -y ros-humble-desktop python3-argcomplete && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
-# Source ROS 2 by default
-SHELL ["/bin/bash", "-c"]
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-
-
-# Installing webots-ros2 package
+# Install webots-ros2
 RUN source /opt/ros/humble/setup.bash && \
     apt-get update && apt-get install -y "ros-humble-webots-ros2*"  
 
-
-
-RUN apt-get update && \
-    apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
+#Install CycloneDDS
+RUN apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
     rm -rf /var/lib/apt/lists/*
-
 ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 # Enable OpenGL capabilities
 ENV NVIDIA_DRIVER_CAPABILITIES graphics,compute,utility
 
-# Set a user name to fix a warning
+# Set user name
 ENV USER root
 
 # Set the locales
 RUN locale-gen en_US.UTF-8
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
+# Install python
 RUN apt-get update && apt-get install --yes \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/
 
-
-# Finally open a bash command to let the user interact
+# Open a terminal
 CMD ["/bin/bash"]
