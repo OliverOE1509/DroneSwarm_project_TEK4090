@@ -24,19 +24,14 @@ Here is the overall directory structure (this will change)
 ``` bash
 .
 ├── Dockerfile
-├── Dockerfile_ikpy
-├── Dockerfile_webots_cloud
-├── drone_swarm_ctf
-│   ├── controllers
-│   │   ├── drone_controller
-│   │   └── mavic_controller
-│   └── worlds
-│       ├── drone_navigation.wbt
-│       └── mavic_2_pro.wbt
 ├── README.md
-├── simple_test.wbt
-├── tree.txt
-└── Webots-R2025a.conf
+└── ros2_ws
+    ├── Webots-R2025a.conf
+    └── src
+        └── drone_swarm_ctf_package
+            ├── controllers
+            ├── package.xml
+            └── worlds
 ```
 
 
@@ -72,10 +67,7 @@ docker build -t webots-drone .
 ``` bash
 docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/ros2_ws/:/usr/local/ros2_ws   webots-drone
 ```
-or
-``` bash
-docker run -it   --gpus all -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v "$(pwd)/drone_swarm_ctf:/project"   webots-drone
-```
+
 If you dont have an nvidia gpu, you can dismiss this from the command above
 ``` bash
 --gpus=all
