@@ -70,7 +70,7 @@ docker build -t webots-drone .
 
 ## Run the container from the image 
 ``` bash
-docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/usr/local/ros2_ws/src   webots-drone
+docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/ros2_ws/:/usr/local/ros2_ws   webots-drone
 ```
 or
 ``` bash
@@ -81,6 +81,13 @@ If you dont have an nvidia gpu, you can dismiss this from the command above
 --gpus=all
 ```
 
+
+Also, if you want to open webots inside  the container to get an interface to see the simulation, then you need to pass access for the container to use your screen. This is done with
+``` bash
+-v /tmp/.X11-unix:/tmp/.X11-unix:rw
+```
+
+If you are windows, I recommend to use a virtual machine and keep the settings just mentioned. If you are macos, you (WILL ADD LATER)
 
 
 ## Ignore everything after this line
