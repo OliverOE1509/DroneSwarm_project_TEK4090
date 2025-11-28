@@ -70,7 +70,7 @@ docker build -t webots-drone .
 
 ## Run the container from the image 
 ``` bash
-docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/project   webots-drone
+docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/drone_swarm_ctf:/usr/local/ros2_ws/src   webots-drone
 ```
 or
 ``` bash
