@@ -7,7 +7,7 @@ source /opt/ros/humble/setup.bash
 echo "Sourcing ROS 2 Humble setup.bash"
 
 # Go to workspace root (directory where this script lives)
-cd /usr/local/ros2_ws_TEST
+cd /usr/local/ros2_ws
 
 # Run rosdep (installs missing dependencies)
 rosdep install --from-paths src -r -y
