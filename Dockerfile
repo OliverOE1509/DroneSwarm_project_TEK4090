@@ -1,6 +1,8 @@
 ARG BASE_IMAGE=nvidia/cuda:11.8.0-base-ubuntu22.04
 FROM ${BASE_IMAGE} AS downloader
 
+
+
 # Determine Webots version to be used and set default argument
 ARG WEBOTS_VERSION=R2025a
 ARG WEBOTS_PACKAGE_PREFIX=
@@ -30,8 +32,8 @@ ENV WEBOTS_HOME /usr/local/webots
 ENV PATH /usr/local/webots:${PATH}
 
 #Copy ROS2 workspaces
-COPY ros2_ws ./ros2_ws
-COPY ros2_ws_TEST ./ros2_ws_TEST
+#COPY ros2_ws ./ros2_ws
+#COPY ros2_ws_TEST ./ros2_ws_TEST
 
 # Install ROS 2 Humble
 RUN apt-get update && \
@@ -47,13 +49,31 @@ RUN apt-get update && \
     echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
 # Install webots-ros2
-RUN source /opt/ros/humble/setup.bash && \
-    apt-get update && apt-get install -y "ros-humble-webots-ros2*"  
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    apt-get update && apt-get install -y 'ros-humble-webots-ros2*'"  
+
+# Install colcon
+RUN apt-get update && apt-get install -y \
+    python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install rosdep and build tools
+RUN apt-get update && apt-get install -y \
+    python3-rosdep \
+    python3-rosinstall \
+    python3-rosinstall-generator \
+    python3-wstool \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Initialize rosdep
+RUN rosdep init || true
+RUN rosdep update
 
 #Install CycloneDDS
-RUN apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
-    rm -rf /var/lib/apt/lists/*
-ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+#RUN apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
+#    rm -rf /var/lib/apt/lists/*
+#ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 # Enable OpenGL capabilities
 ENV NVIDIA_DRIVER_CAPABILITIES graphics,compute,utility

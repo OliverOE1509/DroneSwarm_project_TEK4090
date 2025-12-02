@@ -222,8 +222,9 @@ poetry.toml
 pyrightconfig.json
 
 ### ROS2 ###
-install/
-log/
+**/install/
+**/log/
+**/build/
 
 # Ignore generated docs
 *.dox
