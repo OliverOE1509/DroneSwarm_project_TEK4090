@@ -31,6 +31,12 @@ RUN apt-get update && apt-get install -y \
     libxcb-cursor0 \
     libgl1
 
+RUN apt-get update && apt-get install -y \
+    mesa-utils \
+    libgl1-mesa-dri \
+    libglx-mesa0
+
+RUN apt-get install -y libglu1-mesa libgl1-mesa-glx
 
 # Install Webots runtime dependencies
 RUN apt-get update && apt-get install --yes wget xvfb locales vim && rm -rf /var/lib/apt/lists/ && \

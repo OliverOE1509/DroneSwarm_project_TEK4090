@@ -18,14 +18,13 @@ case "$ARG" in
     # ensure XAUTHORITY is set
     : "${XAUTHORITY:=$HOME/.Xauthority}"
     touch "$XAUTHORITY"
-    
+
     docker run -it \
-      --gpus all \
-      -e DISPLAY="$DISPLAY" \
-      -e XAUTHORITY="$XAUTHORITY" \
-      -v "$XAUTHORITY:$XAUTHORITY" \
-      -v /tmp/.X11-unix:/tmp/.X11-unix \
-      webots-drone
+    --net=host \
+    -e DISPLAY=$DISPLAY \
+    -v $HOME/.Xauthority:/root/.Xauthority \
+    -v "$(pwd)/ros2_ws_TEST:/usr/local/ros2_ws" \
+    webots-drone
     ;;
 
   *)

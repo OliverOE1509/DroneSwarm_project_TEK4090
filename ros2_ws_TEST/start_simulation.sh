@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
-
+export LIBGL_ALWAYS_SOFTWARE=1
+export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
 # Activate ROS 2 Humble
 source /opt/ros/humble/setup.bash
 
