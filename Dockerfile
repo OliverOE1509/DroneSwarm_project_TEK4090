@@ -19,6 +19,19 @@ FROM ${BASE_IMAGE}
 # Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Må legge til dette for å enable å åpne webots interface over ssh og docker
+RUN apt-get update && apt-get install -y \
+    x11-apps \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcb-render0 \
+    libxcb-shape0 \
+    libxcb-xfixes0 \
+    libxcb-cursor0 \
+    libgl1
+
+
 # Install Webots runtime dependencies
 RUN apt-get update && apt-get install --yes wget xvfb locales vim && rm -rf /var/lib/apt/lists/ && \
   wget https://raw.githubusercontent.com/cyberbotics/webots/master/scripts/install/linux_runtime_dependencies.sh && \

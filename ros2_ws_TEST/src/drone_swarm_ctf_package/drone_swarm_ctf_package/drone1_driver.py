@@ -83,10 +83,10 @@ class Drone1Driver:
         p.x, p.y, p.z = x, y, z
         self._pos_pub.publish(p)
 
-""" def main():
+def main():
     from controller import Supervisor
     robot = Supervisor()
     driver = Drone1Driver()
     driver.init(robot, {})
     while robot.step(robot.getBasicTimeStep()) != -1:
-        driver.step() """
+        driver.step()
