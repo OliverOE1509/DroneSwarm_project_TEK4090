@@ -50,6 +50,11 @@ This is the dockerfile you build, which opens to container. Dismiss the Dockerfi
 docker build -t webots-drone .
 ```
 
+Now you need to run this command to allow launch files to open up the webots simulation
+``` bash
+xhost +local:docker
+```
+
 ## Run the container from the image 
 ``` bash
 docker run -it   --gpus all   -e DISPLAY=$DISPLAY   -v /tmp/.X11-unix:/tmp/.X11-unix:rw   -v $(pwd)/ros2_ws/:/usr/local/ros2_ws   webots-drone

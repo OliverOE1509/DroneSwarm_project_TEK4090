@@ -19,6 +19,8 @@ FROM ${BASE_IMAGE}
 # Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
+
+
 # Må legge til dette for å enable å åpne webots interface over ssh og docker
 RUN apt-get update && apt-get install -y \
     x11-apps \
