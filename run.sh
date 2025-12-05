@@ -27,14 +27,15 @@ case "$ARG" in
   oliver_mac)
 
     # ensure XAUTHORITY is set
-    : "${XAUTHORITY:=$HOME/.Xauthority}"
-    touch "$XAUTHORITY"
+    #: "${XAUTHORITY:=$HOME/.Xauthority}"
+    #touch "$XAUTHORITY"
 
     docker run -it \
     --net=host \
     -e DISPLAY=$DISPLAY \
-    -v $HOME/.Xauthority:/root/.Xauthority \
-    -v "$(pwd)/ros2_ws_TEST:/usr/local/ros2_ws" \
+    --volume="$HOME/.Xauthority:/root/.Xauthority:rw" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+    -v "$(pwd)/ros2_ws_test2:/usr/local/ros2_ws" \
     webots-drone
     ;;
 
