@@ -4,7 +4,7 @@
 [![Test](https://github.com/cyberbotics/webots-docker/workflows/Test/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3ATest)
 [![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
 
-This is a cloned repository of: https://github.com/cyberbotics/webots-docker
+This is a cloned repository of: https://github.com/cyberbotics/webots-docker and https://github.com/patrickpbarroso/drone-simulation/tree/main 
 The purpose of this repo is to provide simulation environment for Webots R2025a, using Docker in a ubuntu 22.04 environment. 
 
 
