@@ -57,12 +57,11 @@ xhost +local:docker
 
 Now just simply run 
 ``` bash
-./run.sh test_fra_github
+./run.sh
 ```
 And you are now inside the container. Copy these commands to build the workspace
 ``` bash
 cd ros2_ws
-source /opt/ros/humble/setup.bash
 source install/local_setup.bash
 colcon build --symlink-install
 ```
