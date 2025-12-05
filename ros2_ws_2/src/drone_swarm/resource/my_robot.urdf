@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<robot name="My robot">
+    <webots>
+        <plugin type="drone_swarm.drone_driver.MyRobotDriver" />
+    </webots>
+</robot>
