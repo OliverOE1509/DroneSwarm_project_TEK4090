@@ -1,6 +1,8 @@
 ARG BASE_IMAGE=nvidia/cuda:11.8.0-base-ubuntu22.04
 FROM ${BASE_IMAGE}
 
+ENV ROS_DOMAIN_ID=0
+ENV ROS_LOCALHOST_ONLY=1
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /usr/local/
 
