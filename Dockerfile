@@ -1,90 +1,109 @@
 ARG BASE_IMAGE=nvidia/cuda:11.8.0-base-ubuntu22.04
+
+###############################################
+# Stage 1: Download Webots tarball
+###############################################
 FROM ${BASE_IMAGE} AS downloader
 
-
-# Determine Webots version to be used and set default argument
 ARG WEBOTS_VERSION=R2025a
 ARG WEBOTS_PACKAGE_PREFIX=
-# Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install --yes wget bzip2 && rm -rf /var/lib/apt/lists/ && \
- wget https://github.com/cyberbotics/webots/releases/download/$WEBOTS_VERSION/webots-$WEBOTS_VERSION-x86-64$WEBOTS_PACKAGE_PREFIX.tar.bz2 && \
- tar xjf webots-*.tar.bz2 && rm webots-*.tar.bz2
+RUN apt-get update && \
+    apt-get install -y wget bzip2 && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget https://github.com/cyberbotics/webots/releases/download/$WEBOTS_VERSION/webots-$WEBOTS_VERSION-x86-64$WEBOTS_PACKAGE_PREFIX.tar.bz2 && \
+    tar xjf webots-*.tar.bz2 && \
+    rm webots-*.tar.bz2
 
 
+###############################################
+# Stage 2: Main image
+###############################################
 FROM ${BASE_IMAGE}
 
-# Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Webots runtime dependencies
-RUN apt-get update && apt-get install --yes wget xvfb locales vim && rm -rf /var/lib/apt/lists/ && \
-  wget https://raw.githubusercontent.com/cyberbotics/webots/master/scripts/install/linux_runtime_dependencies.sh && \
-  chmod +x linux_runtime_dependencies.sh && ./linux_runtime_dependencies.sh && rm ./linux_runtime_dependencies.sh && rm -rf /var/lib/apt/lists/
+##############
+# Dependencies
+##############
+RUN apt-get update && \
+    apt-get install -y \
+        wget xvfb locales vim curl gnupg2 lsb-release \
+        python3 python3-pip \
+        python3-colcon-common-extensions \
+        python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install Webots
+##############
+# Install Webots dependencies
+##############
+RUN wget https://raw.githubusercontent.com/cyberbotics/webots/master/scripts/install/linux_runtime_dependencies.sh && \
+    chmod +x linux_runtime_dependencies.sh && \
+    ./linux_runtime_dependencies.sh && \
+    rm linux_runtime_dependencies.sh
+
+##############
+# Install Webots itself
+##############
 WORKDIR /usr/local/
 COPY --from=downloader /webots /usr/local/webots/
+ENV WEBOTS_HOME=/usr/local/webots
+ENV PATH="${WEBOTS_HOME}:${PATH}"
 ENV QTWEBENGINE_DISABLE_SANDBOX=1
-ENV WEBOTS_HOME /usr/local/webots
-ENV PATH /usr/local/webots:${PATH}
 
+##############
 # Install ROS 2 Humble
+##############
 RUN apt-get update && \
     apt-get install -y software-properties-common curl gnupg2 lsb-release && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
-        -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
         http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" \
         > /etc/apt/sources.list.d/ros2.list && \
     apt-get update && \
     apt-get install -y ros-humble-desktop python3-argcomplete && \
-    rm -rf /var/lib/apt/lists/* && \
-    echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+    rm -rf /var/lib/apt/lists/*
 
-# Install webots-ros2
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
-    apt-get update && apt-get install -y 'ros-humble-webots-ros2*'"  
+##############
+# Install webots_ros2
+##############
+RUN bash -c "source /opt/ros/humble/setup.bash && \
+    apt-get update && apt-get install -y 'ros-humble-webots-ros2*' && \
+    rm -rf /var/lib/apt/lists/*"
 
-# Install colcon
-RUN apt-get update && apt-get install -y \
-    python3-colcon-common-extensions \
-    && rm -rf /var/lib/apt/lists/*
+##############
+# Set locales
+##############
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
-# Install rosdep and build tools
-RUN apt-get update && apt-get install -y \
-    python3-rosdep \
-    python3-rosinstall \
-    python3-rosinstall-generator \
-    python3-wstool \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Initialize rosdep
+##############
+# rosdep setup
+##############
 RUN rosdep init || true
 RUN rosdep update
 
-#Install CycloneDDS
-#RUN apt-get install -y ros-humble-rmw-cyclonedds-cpp && \
-#    rm -rf /var/lib/apt/lists/*
-#ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+##############
+# Enable NVIDIA OpenGL
+##############
+ENV NVIDIA_DRIVER_CAPABILITIES="graphics,compute,utility"
 
-# Enable OpenGL capabilities
-ENV NVIDIA_DRIVER_CAPABILITIES graphics,compute,utility
+##############
+# Entry point for environment setup
+##############
+COPY <<EOF /ros_entrypoint.sh
+#!/bin/bash
+set -e
+source /opt/ros/humble/setup.bash
+export WEBOTS_HOME=/usr/local/webots
+export PATH=/usr/local/webots:\$PATH
+exec "\$@"
+EOF
 
-# Set user name
-ENV USER root
+RUN chmod +x /ros_entrypoint.sh
 
-# Set the locales
-RUN locale-gen en_US.UTF-8
-ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
-
-# Install python
-RUN apt-get update && apt-get install --yes \
-    python3 \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/
-
-# Open a terminal
+ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["/bin/bash"]
