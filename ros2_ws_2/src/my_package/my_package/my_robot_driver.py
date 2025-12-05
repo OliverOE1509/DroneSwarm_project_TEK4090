@@ -20,7 +20,7 @@ class MyRobotDriver:
         self.__target_twist = Twist()
 
         rclpy.init(args=None)
-        self.__node = rclpy.create_node('drone_driver')
+        self.__node = rclpy.create_node('my_robot_driver')
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
 
     def __cmd_vel_callback(self, twist):
