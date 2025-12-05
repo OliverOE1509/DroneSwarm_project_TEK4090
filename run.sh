@@ -8,5 +8,5 @@ docker run -it \
   -e DISPLAY=$DISPLAY\
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v ~/.Xauthority:/root/.Xauthority:rw \
-  -v "$(pwd)/ros2_ws:/usr/local/ros2_ws" \
+  -v "$(pwd)/ros2_ws_2:/usr/local/ros2_ws" \
   webots-drone
