@@ -42,6 +42,12 @@ Will give more details later
 ./Dockerfile
 ```
 
+
+``` bash
+source /opt/ros/humble/setup.bash
+source install/local_setup.bash
+```
+
 This is the dockerfile you build, which opens to container. Dismiss the Dockerfiles "Dockerfile_ikpy" and "Dockerfile_webots_cloud"
 
 
