@@ -88,10 +88,8 @@ def generate_launch_description():
     )
     robot_description_path = os.path.join(package_dir, 'resource', 'mavic_webots.urdf')
 
-    # Obtém a quantidade de drones desejada na simulação
-    num_drones = int(input("\n****************************************"
-    +"\nHow many drones do you want to simulate?"
-    +"\n****************************************\nR:"))
+    # Set the number of drones.
+    num_drones = 4
 
     # Chama o método para adicionar os modelos dos drones no arquivo .wbt do mundo
     generate_wbt_file(num_drones)
