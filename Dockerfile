@@ -10,8 +10,8 @@ RUN apt-get update && \
 
 # Install webots
 RUN curl -fsSL https://cyberbotics.com/Cyberbotics.asc \
-  | sudo gpg --dearmor -o /etc/apt/keyrings/cyberbotics.gpg &&\
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/cyberbotics.gpg] https://cyberbotics.com/debian binary-amd64/" | sudo tee /etc/apt/sources.list.d/cyberbotics.list &&\
+  | gpg --dearmor -o /etc/apt/keyrings/cyberbotics.gpg &&\
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/cyberbotics.gpg] https://cyberbotics.com/debian binary-amd64/" | tee /etc/apt/sources.list.d/cyberbotics.list &&\
     apt-get update && apt-get install -y webots
 
 ENV WEBOTS_HOME=/usr/local/webots
