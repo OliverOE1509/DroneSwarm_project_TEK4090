@@ -96,8 +96,10 @@ def generate_launch_description():
 
     # Instancia os drivers para a quantidade de drones desejada
     mavic_drivers = {}
+    mavic_controllers = {}
     for i in range(num_drones):
         driver_name = f"mavic_driver_{i + 1}"
+        controller_name = f"Mavic_2_PRO_{i + 1}_Controller"
         drone_name = f"Mavic_2_PRO_{i+1}"
 
         mavic_drivers[driver_name] = WebotsController(
@@ -107,6 +109,15 @@ def generate_launch_description():
             ],
             respawn=True
         )
+
+        mavic_controllers[controller_name] = Node(
+            package="mavic_simulation",
+            executable="mavic_controller",
+            name=controller_name,
+            parameters=[{"NDrones":num_drones}
+                        ,{"MavicID":i+1}]
+        )
+
 
     # Cria o launch
     ld = LaunchDescription([
@@ -131,5 +142,7 @@ def generate_launch_description():
     # Adiciona os drivers ao launch da simulação
     for mavic in mavic_drivers:
         ld.add_action(mavic_drivers[mavic])
+    for ctrlr in mavic_controllers:
+        ld.add_action(mavic_controllers[ctrlr])
 
     return ld
