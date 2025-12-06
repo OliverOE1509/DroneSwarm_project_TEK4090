@@ -27,7 +27,7 @@ from webots_ros2_driver.webots_launcher import WebotsLauncher
 from webots_ros2_driver.webots_controller import WebotsController
 import shutil
 import os
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetUseSimTime
 
 def generate_launch_description():
 
@@ -106,6 +106,7 @@ def generate_launch_description():
             robot_name=drone_name,
             parameters=[
                 {'robot_description': robot_description_path},
+                {'use_sim_time': True}
             ],
             respawn=True
         )
@@ -114,13 +115,15 @@ def generate_launch_description():
             package="mavic_simulation",
             executable="mavic_controller",
             name=controller_name,
-            parameters=[{"NDrones":num_drones}
-                        ,{"MavicID":i+1}]
+            parameters=[{"NDrones":num_drones},
+                        {"MavicID":i+1},
+                        {'use_sim_time': True}]
         )
 
 
     # Cria o launch
     ld = LaunchDescription([
+        SetUseSimTime(True),
         DeclareLaunchArgument(
             'world',
             default_value='updated_world.wbt',
