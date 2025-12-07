@@ -1,4 +1,4 @@
-import functools
+import functools, math
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, Vector3Stamped, PointStamped, Vector3
@@ -15,7 +15,7 @@ STATE_TOPICS  = {
 #TODO: FLAG_TOPIC = {}
 STATE_TOPIC_NAMES = [i.split("/")[-1]  for i in STATE_TOPICS.keys()]
 CONTROL_TOPICS = {
-    "/cmd_vel_Mavic_2_PRO_ID": Twist #Desired translational and rotational velocities in the global coordinate system. 
+    "/cmd_vel_Mavic_2_PRO_ID": Twist #Desired translational and rotational velocities in the body frame coordinate system. 
 }
 
 class MP2Controller(Node):
@@ -64,15 +64,63 @@ class MP2Controller(Node):
         Generic callback used for all subscriptions.
         Stores the latest message under self.latest[drone_id][topic].
         """
-        self.latest.setdefault(drone_id, {})[topic] = msg
+        pyval = self._unpack_msg(msg)
+        self.latest.setdefault(drone_id, {})[topic] = pyval
 
+    def _unpack_msg(self, msg):
+        """Deterministic unpacker for common messages."""
+        # Exact type checks first
+        if isinstance(msg, Float32):
+            return float(msg.data)
 
-        
+        if isinstance(msg, FloatStamped):
+            # handle common field names robustly
+            for fld in ("data", "value", "float", "data_float"):
+                if hasattr(msg, fld):
+                    try:
+                        return float(getattr(msg, fld))
+                    except Exception:
+                        pass
+            # fallback to attempt numeric attributes on msg
+        if isinstance(msg, PointStamped):
+            return (float(msg.point.x), float(msg.point.y), float(msg.point.z))
+
+        if isinstance(msg, Vector3Stamped):
+            return (float(msg.vector.x), float(msg.vector.y), float(msg.vector.z))
+
+        if isinstance(msg, Vector3):
+            return (float(msg.x), float(msg.y), float(msg.z))
+
+        # Generic heuristics (best-effort)
+        if hasattr(msg, 'point') and hasattr(msg.point, 'x'):
+            return (float(msg.point.x), float(msg.point.y), float(msg.point.z))
+
+        if hasattr(msg, 'vector') and hasattr(msg.vector, 'x'):
+            return (float(msg.vector.x), float(msg.vector.y), float(msg.vector.z))
+
+        if all(hasattr(msg, f) for f in ('x', 'y', 'z')):
+            try:
+                return (float(msg.x), float(msg.y), float(msg.z))
+            except Exception:
+                pass
+
+        if hasattr(msg, 'data'):
+            try:
+                return float(msg.data)
+            except Exception:
+                pass
+        return msg
+    
+    def _get_latest(self, id, topic):
+        pass
+
     def _ctrl_loop(self):
         ctrl = Twist()
-        
-        #self.cmd_vel.publish(ctrl)
-        #self.get_logger().info('Publishing: "%s"' % ctrl.data)
+        ctrl.linear = Vector3(x=0.5, y=0.0, z=0.0)
+        ctrl.angular = Vector3(x=0.0, y=0.0, z=math.radians(10.0))
+        self.cmd_vel.publish(ctrl)
+        self.get_logger().info(f'Linear: {ctrl.linear}. Angular: {ctrl.angular}')
+        self.get_logger().info(f'Latest: {self.latest}')
         
 
 
