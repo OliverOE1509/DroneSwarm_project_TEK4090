@@ -91,6 +91,8 @@ def generate_launch_description():
 
     # Set the number of drones.
     num_drones = 4
+    # Set the frequency of the control loops
+    freq_hz = 10.0
 
     # Chama o método para adicionar os modelos dos drones no arquivo .wbt do mundo
     generate_wbt_file(num_drones)
@@ -100,7 +102,8 @@ def generate_launch_description():
         package = 'mavic_simulation',
         executable = 'flag_node',
         parameters = [{'NDrones':  num_drones},
-                      {'use_sim_time': True}]
+                      {'use_sim_time': True},
+                      {'loop_freq_hz':freq_hz}]
     )
 
     # Instancia os drivers para a quantidade de drones desejada
@@ -126,7 +129,8 @@ def generate_launch_description():
             name=controller_name,
             parameters=[{"NDrones":num_drones},
                         {"MavicID":i+1},
-                        {'use_sim_time': True}]
+                        {'use_sim_time': True},
+                        {'loop_freq_hz':freq_hz}]
         )
 
 
