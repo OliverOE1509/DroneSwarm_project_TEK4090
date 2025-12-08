@@ -40,7 +40,8 @@ setup(
     entry_points={
         'console_scripts': [
             'mavic_driver = mavic_simulation.mavic_driver:main' ,
-            'mavic_controller = mavic_simulation.mavic_controller:main'
+            'mavic_controller = mavic_simulation.mavic_controller:main',
+            'flag_node = mavic_simulation.flag_node:main'
         ],
         'launch.frontend.launch_extension': ['launch_ros = launch_ros']
     }

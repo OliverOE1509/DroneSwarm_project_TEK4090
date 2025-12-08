@@ -61,34 +61,4 @@ Road {
     type "black stone"
   }
 }
-Windmill {
-  translation -43.8656 -19.8433 0
-  rotation 0 0 1 0.523601
-}
-Windmill {
-  translation -44.258 -27.3356 0
-  rotation 0 0 1 0.523601
-  name "windmill(1)"
-}
-Windmill {
-  translation -46.2448 30.573 0
-  rotation 0 0 1 0.523601
-  name "windmill(2)"
-}
-Windmill {
-  translation -38.75 23.4 0
-  name "windmill(3)"
-}
-SmallManor {
-  translation -50.35 11.25 0
-  rotation 0 0 1 -0.392394
-}
-CardboardBox {
-  translation -0.730157 -1.22891 0.3
-  rotation 0 0 1 1.309
-}
-TeslaModel3Simple {
-  translation -41.5139 4.34169 0.31
-  rotation 0 0 1 -0.2618053071795865
-}
 
