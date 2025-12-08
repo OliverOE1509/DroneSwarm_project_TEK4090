@@ -31,30 +31,11 @@ from launch_ros.actions import Node, SetUseSimTime
 import numpy as np # For random flag position generation
 
 def generate_launch_description():
-
-
-    def generate_random_position_of_flag():
-        x = np.random.uniform(-5, 5) # possible to implement better methods, based sampling from normal distribution around the initial drone position, respawning when proximity to other drones is too close
-        z = np.random.uniform(-5, 5) # The z and x plane is used as ground plane in Webots
-        wbt_content_flag = ''
-        wbt_content_flag += 'DEF FLAG Node {\n'
-        wbt_content_flag += f'   translation {x} 1.0 {z}     # 1 meter above the ground\n'
-        wbt_content_flag += '   children [\n'
-        wbt_content_flag += '   Shape {\n'
-        wbt_content_flag += '       appearance PBRAppearance { baseColor 1 0 0 }\n'
-        wbt_content_flag += '       geometry Sphere { radius 0.1 }\n'
-        wbt_content_flag += '       }\n'
-        wbt_content_flag += '   ]\n'
-        wbt_content_flag += '}\n\n'
-        return wbt_content_flag
-
     # Método para adicionar a quantidade especificada de drones ao arquivo .wbt do mundo que será simulado
     def generate_wbt_file(num_drones):
         # Abre o modelo base do mundo simulado e lê o conteúdo
         with open('install/mavic_simulation/share/mavic_simulation/worlds/mavic_world.wbt') as template_file:
             template_content = template_file.read()
-
-        flag_content = generate_random_position_of_flag()
 
         # Cria drones de acordo com a quantidade desejada
         wbt_content = ''
@@ -80,10 +61,9 @@ def generate_launch_description():
             wbt_content += drone_content
             y += 1
         
-
         
         # Adiciona modelo base do mundo aos drones criados
-        wbt_content = template_content + wbt_content + flag_content
+        wbt_content = template_content + wbt_content
         
         # Verifica se já existe um arquivo updated_world.wbt (se existir dá erro). Se sim, apaga ele.
         if os.path.exists('install/mavic_simulation/share/mavic_simulation/worlds/updated_world.wbt'):
@@ -116,7 +96,7 @@ def generate_launch_description():
     generate_wbt_file(num_drones)
 
     # Make flag publisher node
-    flag_driver = Node(
+    flag_node = Node(
         package = 'mavic_simulation',
         executable = 'flag_node'
     )
@@ -157,7 +137,7 @@ def generate_launch_description():
             description='Choose one of the world files from `/mavic_simulation/worlds` directory'
         ),
         webots,
-        flag_driver,
+        flag_node,
         webots._supervisor,
         # This action will kill all nodes once the Webots simulation has exited
         launch.actions.RegisterEventHandler(
