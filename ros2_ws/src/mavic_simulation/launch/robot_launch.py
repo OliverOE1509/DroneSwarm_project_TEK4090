@@ -98,7 +98,9 @@ def generate_launch_description():
     # Make flag publisher node
     flag_node = Node(
         package = 'mavic_simulation',
-        executable = 'flag_node'
+        executable = 'flag_node',
+        parameters = [{'NDrones':  num_drones},
+                      {'use_sim_time': True}]
     )
 
     # Instancia os drivers para a quantidade de drones desejada
