@@ -116,8 +116,12 @@ class MP2Controller(Node):
 
     def _ctrl_loop(self):
         ctrl = Twist()
-        ctrl.linear = Vector3(x=0.5, y=0.0, z=0.0)
-        ctrl.angular = Vector3(x=0.0, y=0.0, z=math.radians(10.0))
+        ctrl.linear.x = 0.5
+        ctrl.linear.y = 0.0
+        ctrl.linear.z = 0.0
+        ctrl.angular.x = 0.0
+        ctrl.angular.y = 0.0
+        ctrl.angular.z = math.radians(10.0)
         self.cmd_vel.publish(ctrl)
         self.get_logger().info(f'Linear: {ctrl.linear}. Angular: {ctrl.angular}')
         self.get_logger().info(f'Latest: {self.latest}')
