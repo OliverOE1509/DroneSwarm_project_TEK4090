@@ -5,8 +5,10 @@ import functools
 import numpy as np
 
 class PublisherNode(Node):
-    '''A bit unsure if we implement the respawn logic here or in the launch file'''
-
+    '''
+    A node which publishes a target position at /flag/gps.
+    The flag is respawned at another position when atleast one drone is close enough. 
+    '''
     def __init__(self):
         super().__init__('publisher_node')
         self.declare_parameter('NDrones', 4)
@@ -71,9 +73,6 @@ def main(args=None):
 
     rclpy.spin(publisher_node)
 
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
     publisher_node.destroy_node()
     rclpy.shutdown()
 
