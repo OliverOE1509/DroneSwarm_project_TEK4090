@@ -8,7 +8,7 @@ class PublisherNode(Node):
     '''A bit unsure if we implement the respawn logic here or in the launch file'''
 
     def __init__(self):
-        super().__init__('publisher_node')
+        super().__init__('flag_node')
         self.declare_parameter('NDrones', 4)
         n_drones = self.get_parameter('NDrones').value
 
