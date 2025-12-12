@@ -5,13 +5,18 @@ import functools
 import numpy as np
 
 class PublisherNode(Node):
-    '''A bit unsure if we implement the respawn logic here or in the launch file'''
-
+    '''
+    A node which publishes a target position at /flag/gps.
+    The flag is respawned at another position when atleast one drone is close enough. 
+    '''
     def __init__(self):
         super().__init__('flag_node')
         self.declare_parameter('NDrones', 4)
+        self.declare_parameter('loop_freq_hz', 10.0)
+        
         n_drones = self.get_parameter('NDrones').value
-
+        freq_hz = int(self.get_parameter('loop_freq_hz').value)
+       
         self.drone_positions = {  } # drone_id: (x,y,z)
         self._subs = []
         for i in range(1, n_drones +1):
@@ -28,8 +33,8 @@ class PublisherNode(Node):
         self.flag_x = 5.0
         self.flag_y = 3.0
         self.flag_z = 10.0
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        
+        self.timer = self.create_timer(1/freq_hz, self.timer_callback)
 
     def respawn_flag(self, radius = 2.0):
         flag_vec = np.array([self.flag_x, self.flag_y, self.flag_z])
@@ -49,7 +54,7 @@ class PublisherNode(Node):
         self.drone_positions[drone_id] = (float(msg.point.x), float(msg.point.y), float(msg.point.z))
 
     def timer_callback(self):
-        self.respawn_flag()
+        self.respawn_flag(radius = 0.2) #Meters
         msg = PointStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "world"
@@ -68,9 +73,6 @@ def main(args=None):
 
     rclpy.spin(publisher_node)
 
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
     publisher_node.destroy_node()
     rclpy.shutdown()
 

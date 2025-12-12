@@ -27,10 +27,11 @@ class MP2Controller(Node):
         # Declare params with typed defaults
         self.declare_parameter('NDrones', 4)
         self.declare_parameter('MavicID', 1)
+        self.declare_parameter('loop_freq_hz', 10.0)
         # Get values
         n_drones = int(self.get_parameter('NDrones').value)
         my_id = int(self.get_parameter('MavicID').value)
-
+        freq_hz = int(self.get_parameter('loop_freq_hz').value)
         # keep references so subscriptions aren't GC'd
         self._subs = []
         # latest messages storage: { drone_id: {topic_name: msg}  }
@@ -55,8 +56,7 @@ class MP2Controller(Node):
             self.cmd_vel = self.create_publisher(msg_type, topic, 10)
         
         # create control loop. 
-        freq = 10.0 #Hz
-        self.timer = self.create_timer(1.0/freq, self._ctrl_loop)
+        self.timer = self.create_timer(1.0/freq_hz, self._ctrl_loop)
         
 
     def _generic_cb(self, msg, topic: str, drone_id: int):
