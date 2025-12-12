@@ -1,2 +1,0 @@
-FROM cyberbotics/webots.cloud:R2025a-ubuntu24.04
-RUN apt-get update && apt-get install -y python3-pip && rm -rf /var/lib/apt/lists/ && pip install --no-cache-dir ikpy
