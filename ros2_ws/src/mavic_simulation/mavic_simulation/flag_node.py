@@ -30,13 +30,13 @@ class PublisherNode(Node):
             )
             self._subs.append(sub)
         self.flag_pug = self.create_publisher(PointStamped, '/flag/gps', 10)
-        self.flag_x = 5.0
-        self.flag_y = 3.0
-        self.flag_z = 10.0
+        self.flag_x = 8.0
+        self.flag_y = 7.0
+        self.flag_z = 5.0
         
         self.timer = self.create_timer(1/freq_hz, self.timer_callback)
 
-    def respawn_flag(self, radius = 2.0):
+    def respawn_flag(self, radius):
         flag_vec = np.array([self.flag_x, self.flag_y, self.flag_z])
         for drone_id, pos in self.drone_positions.items():
             drone_vec = np.array(pos)
@@ -68,14 +68,10 @@ class PublisherNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-
     publisher_node = PublisherNode()
-
     rclpy.spin(publisher_node)
-
     publisher_node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
