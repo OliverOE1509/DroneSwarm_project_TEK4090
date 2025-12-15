@@ -1,0 +1,159 @@
+\documentclass[conference]{IEEEtran} 
+% or: \documentclass[journal]{IEEEtran}
+
+% -------------------------
+% Packages
+% -------------------------
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% -------------------------
+% Theorem environments
+% -------------------------
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+% -------------------------
+% Title
+% -------------------------
+\title{Descriptive and Searchable Paper Title}
+
+\author{
+\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{Affiliation\\
+Email}
+}
+
+\begin{document}
+\maketitle
+
+% -------------------------
+% Abstract
+% -------------------------
+\begin{abstract}
+Briefly describe:
+(1) the problem,
+(2) the main result,
+(3) a key conclusion,
+(4) an application or example (if any).
+No citations, no equations.
+\end{abstract}
+
+% -------------------------
+% Introduction
+% -------------------------
+\section{Introduction}
+
+% Paragraph 1: problem description
+Textual description of the problem and context.
+
+% Paragraph 2: literature positioning
+Discussion of closely related work and limitations.
+
+% Paragraph 3: contributions
+The main contribution of this paper is ...
+
+% Paragraph 4: paper organization
+The remainder of this paper is organized as follows...
+
+\paragraph*{Notation}
+Optional. Define symbols used throughout the paper.
+
+% -------------------------
+% Related Work (optional)
+% -------------------------
+\section{Related Work}
+Grouped and balanced discussion of relevant literature.
+
+% -------------------------
+% Problem Statement
+% -------------------------
+\section{Problem Statement}
+
+% 1. System description
+Describe the system and state variables.
+
+% 2. Dynamics / actuation
+\begin{equation}
+\dot{x} = f(x,u,w)
+\end{equation}
+
+% 3. Sensing / information structure
+Describe outputs, measurements, information constraints.
+
+% 4. Objective
+Clearly state the control/optimization objective.
+
+% -------------------------
+% Main Results
+% -------------------------
+\section{Main Results}
+
+\begin{theorem}[Main Result Title]
+Consider the system described in Section~III.
+Under Assumptions~1--3, the following property holds...
+\end{theorem}
+
+Short explanation of the theorem and its implications.
+Avoid proofs here.
+
+% -------------------------
+% Discussion / Corollaries
+% -------------------------
+\section{Discussion}
+
+\begin{corollary}
+A special case or consequence of the main theorem.
+\end{corollary}
+
+Explain why this is interesting or useful.
+
+% -------------------------
+% Proofs
+% -------------------------
+\section{Proofs}
+
+\begin{proof}[Proof of Theorem 1]
+Explain the structure of the proof before technical steps.
+Detailed derivations.
+\end{proof}
+
+% -------------------------
+% Applications / Examples
+% -------------------------
+\section{Applications and Examples}
+
+Describe simulations, benchmarks, or real-world scenarios.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{example.pdf}
+\caption{Illustrative example of the proposed method.}
+\end{figure}
+
+% -------------------------
+% Conclusions
+% -------------------------
+\section{Conclusions and Future Work}
+
+Summarize main results and outline open problems.
+
+% -------------------------
+% Appendix
+% -------------------------
+\appendices
+\section{Auxiliary Proofs}
+Lengthy or technical material.
+
+% -------------------------
+% References
+% -------------------------
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

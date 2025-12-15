@@ -41,7 +41,8 @@ setup(
         'console_scripts': [
             'mavic_driver = mavic_simulation.mavic_driver:main' ,
             'mavic_controller = mavic_simulation.mavic_controller:main',
-            'flag_node = mavic_simulation.flag_node:main'
+            'flag_node = mavic_simulation.flag_node:main',
+            'swarm_manager = mavic_simulation.swarm_manager:main'
         ],
         'launch.frontend.launch_extension': ['launch_ros = launch_ros']
     }

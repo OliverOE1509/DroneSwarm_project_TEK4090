@@ -61,7 +61,6 @@ def generate_launch_description():
             wbt_content += drone_content
             y += 1
         
-        
         # Adiciona modelo base do mundo aos drones criados
         wbt_content = template_content + wbt_content
         
@@ -81,58 +80,70 @@ def generate_launch_description():
 
     # Configurações do mundo que será simulado
     package_dir = get_package_share_directory('mavic_simulation')
-    world = LaunchConfiguration('world')
-
+    world = LaunchConfiguration('world')    
     webots = WebotsLauncher(
-        world=PathJoinSubstitution([package_dir, 'worlds', world]),
-        ros2_supervisor=True
-    )
-    robot_description_path = os.path.join(package_dir, 'resource', 'mavic_webots.urdf')
-
-    # Set the number of drones.
-    num_drones = 4
-    # Set the frequency of the control loops
-    freq_hz = 10.0
-
-    # Chama o método para adicionar os modelos dos drones no arquivo .wbt do mundo
-    generate_wbt_file(num_drones)
-
-    # Make flag publisher node
-    flag_node = Node(
-        package = 'mavic_simulation',
-        executable = 'flag_node',
-        parameters = [{'NDrones':  num_drones},
-                      {'use_sim_time': True},
-                      {'loop_freq_hz':freq_hz}]
-    )
-
-    # Instancia os drivers para a quantidade de drones desejada
-    mavic_drivers = {}
-    mavic_controllers = {}
-    for i in range(num_drones):
-        driver_name = f"mavic_driver_{i + 1}"
-        controller_name = f"Mavic_2_PRO_{i + 1}_Controller"
-        drone_name = f"Mavic_2_PRO_{i+1}"
-
-        mavic_drivers[driver_name] = WebotsController(
-            robot_name=drone_name,
-            parameters=[
-                {'robot_description': robot_description_path},
-                {'use_sim_time': True}
-            ],
-            respawn=True
+            world=PathJoinSubstitution([package_dir, 'worlds', world]),
+            ros2_supervisor=True
         )
+    robot_description_path = os.path.join(package_dir, 'resource', 'mavic_webots.urdf')
+    def setup_opaque_function(context, *args, **kwargs):
+        # Set the number of drones.
+        num_drones = int(LaunchConfiguration('NDrones').perform(context))
+        # Set the frequency of the control loops
+        freq_hz = 10.0
 
-        mavic_controllers[controller_name] = Node(
-            package="mavic_simulation",
-            executable="mavic_controller",
-            name=controller_name,
-            parameters=[{"NDrones":num_drones},
-                        {"MavicID":i+1},
+        # Chama o método para adicionar os modelos dos drones no arquivo .wbt do mundo
+        generate_wbt_file(num_drones)
+
+        actions = []
+        # Make flag publisher node
+        flag_node = Node(
+            package = 'mavic_simulation',
+            executable = 'flag_node',
+            parameters = [{'NDrones':  num_drones},
                         {'use_sim_time': True},
                         {'loop_freq_hz':freq_hz}]
         )
+        actions.append(flag_node)
 
+        swarm_node = Node(
+            package = 'mavic_simulation',
+            executable = 'swarm_manager',
+            parameters = [{'NDrones':  num_drones},
+                            {'use_sim_time': True},
+                            {'loop_freq_hz':2.0}]
+        )
+        actions.append(swarm_node)
+
+        # Instancia os drivers para a quantidade de drones desejada
+        mavic_drivers = {}
+        mavic_controllers = {}
+        for i in range(num_drones):
+            driver_name = f"mavic_driver_{i + 1}"
+            controller_name = f"Mavic_2_PRO_{i + 1}_Controller"
+            drone_name = f"Mavic_2_PRO_{i+1}"
+
+            mavic_drivers[driver_name] = WebotsController(
+                robot_name=drone_name,
+                parameters=[
+                    {'robot_description': robot_description_path},
+                    {'use_sim_time': True}
+                ],
+                respawn=True
+            )
+            actions.append(mavic_drivers[driver_name])
+
+            mavic_controllers[controller_name] = Node(
+                package="mavic_simulation",
+                executable="mavic_controller",
+                name=controller_name,
+                parameters=[{"NDrones":num_drones},
+                            {"MavicID":i+1},
+                            {'use_sim_time': True},
+                            {'loop_freq_hz':freq_hz}]
+            )
+            actions.append(mavic_controllers[controller_name])
+        return actions
 
     # Cria o launch
     ld = LaunchDescription([
@@ -142,10 +153,15 @@ def generate_launch_description():
             default_value='updated_world.wbt',
             description='Choose one of the world files from `/mavic_simulation/worlds` directory'
         ),
+        DeclareLaunchArgument(
+            'NDrones',
+            default_value='2',
+            description='Number of drones to spawn in simulation'
+        ),
         webots,
-        flag_node,
+
         webots._supervisor,
-        # This action will kill all nodes once the Webots simulation has exited
+        OpaqueFunction(function=setup_opaque_function),
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,
@@ -155,11 +171,5 @@ def generate_launch_description():
             )
         )
     ])
-
-    # Adiciona os drivers ao launch da simulação
-    for mavic in mavic_drivers:
-        ld.add_action(mavic_drivers[mavic])
-    for ctrlr in mavic_controllers:
-        ld.add_action(mavic_controllers[ctrlr])
 
     return ld

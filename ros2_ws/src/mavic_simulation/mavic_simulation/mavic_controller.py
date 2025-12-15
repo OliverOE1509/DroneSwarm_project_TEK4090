@@ -4,6 +4,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, Vector3Stamped, PointStamped, Vector3
 from std_msgs.msg import Float32
 from webots_ros2_msgs.msg import FloatStamped
+import numpy as np
+from std_msgs.msg import Int32
 
 STATE_TOPICS  = {
     "/Mavic_2_PRO_ID/compass/bearing": FloatStamped,        #The drone's yaw/angle relative to the north_vector in degrees. 
@@ -27,13 +29,21 @@ class MP2Controller(Node):
         super().__init__('Mavic_2_PRO_ID_Controller')
         
         # Declare params with typed defaults
-        self.declare_parameter('NDrones', 4)
+        #self.declare_parameter('NDrones', 2)
         self.declare_parameter('MavicID', 1)
         self.declare_parameter('loop_freq_hz', 10.0)
         # Get values
         n_drones = int(self.get_parameter('NDrones').value)
         my_id = int(self.get_parameter('MavicID').value)
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
+
+        # Attempt at making swarm formation, as function of # of drones
+        self.formation_offsets = self.spherical_offsets(n_drones, radius = 2.5)
+
+        self.declare_parameter('z_ref', 1.5)  # fallback
+        self.z_ref = float(self.get_parameter('z_ref').value)
+        self._z_ref_initialized = False 
+
         # keep references so subscriptions aren't GC'd
         self._subs = []
         # latest messages storage: { drone_id: {topic_name: msg}  }
@@ -57,16 +67,26 @@ class MP2Controller(Node):
             topic = tmpl.replace("ID", str(my_id))
             self.cmd_vel = self.create_publisher(msg_type, topic, 10)
 
-
+        # I create a leader ID (1 to N) to identify which drone is the leader at each consensus step.
+        # The leader will be the one touching the flag
+        self.leader_id = None
+        # After an event (either time based or flag respawned), the swarm will re-calculate consensus, and new leader will emerge
+        self.last_consensus_time = self.get_clock().now()
         self.flag_pos = None
 
         # Create subscription to flag position
-        flag_topic = list(FLAG_TOPIC.keys())[0]
-        flag_msg_type = FLAG_TOPIC[flag_topic]
         self.flag_sub = self.create_subscription(
             PointStamped,
             "/flag/gps",
             self._flag_cb,
+            10
+        )
+
+        # Subscription for swarm manager
+        self.leader_sub = self.create_subscription(
+            Int32,
+            '/swarm/leader',
+            self._leader_cb,
             10
         )
         
@@ -79,6 +99,9 @@ class MP2Controller(Node):
             float(msg.point.y),
             float(msg.point.z)
         )
+    
+    def _leader_cb(self, msg):
+        self.leader_id = msg.data
     
     def _get_my_position(self):
         my_id = int(self.get_parameter('MavicID').value)
@@ -136,10 +159,99 @@ class MP2Controller(Node):
             except Exception:
                 pass
         return msg
+
+
+    def _norm3(self, v):
+        return math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+
+    def _unit3(self, v, eps=1e-9):
+        n = self._norm3(v)
+        if n < eps:
+            return (0.0, 0.0, 0.0), 0.0
+        return (v[0]/n, v[1]/n, v[2]/n), n
+
+    def attraction_velocity(self, pos, goal, v_att_max=2.0, d0=3.0, slow_radius=1.5):
+        # vector to goal
+        dx = goal[0] - pos[0]
+        dy = goal[1] - pos[1]
+        dz = goal[2] - pos[2]
+        u, d = self._unit3((dx, dy, dz))
+
+        # base speed curve: v = v_att_max * tanh(d/d0)
+        v = v_att_max * math.tanh(d / max(1e-6, d0))
+
+        # soften attraction close to goal to prevent pile-up
+        # scale -> 0 as d->0, scale ~1 outside slow_radius
+        if d < slow_radius:
+            v *= (d / max(1e-6, slow_radius))
+
+        return (v * u[0], v * u[1], v * u[2])
+
+    def repulsion_velocity(self, pos_i, pos_j, R=2.0, v_rep_max=1.2, p=2.0):
+        # vector away from j
+        rx = pos_i[0] - pos_j[0]
+        ry = pos_i[1] - pos_j[1]
+        rz = pos_i[2] - pos_j[2]
+        u, d = self._unit3((rx, ry, rz))
+        if d <= 1e-6 or d >= R:
+            return (0.0, 0.0, 0.0)
+
+        # smooth bounded gain in [0, v_rep_max]:
+        # g = v_rep_max * ( (1/d - 1/R) / (1/(eps) - 1/R) )^p  (normalized)
+        # simpler and robust:
+        s = (R - d) / R              # 0 at boundary, 1 at d=0
+        g = v_rep_max * (s ** p)     # shape exponent p>=1
+
+        return (g * u[0], g * u[1], g * u[2])
     
+    def density_scale(self, pos_i, neighbor_positions, R=2.0, beta=0.4):
+        # N_eff counts nearby drones with distance weighting
+        N_eff = 0.0
+        for pj in neighbor_positions:
+            dx = pos_i[0] - pj[0]
+            dy = pos_i[1] - pj[1]
+            dz = pos_i[2] - pj[2]
+            d = np.sqrt(dx*dx + dy*dy + dz*dz)
+            if 1e-6 < d < R:
+                N_eff += np.exp(-d / (0.5*R))
+        return 1.0 + beta * N_eff
     
-    def _get_latest(self, id, topic):
-        pass
+    def spherical_offsets(self, n_drones, radius=2.5):
+        """
+        Returns dict: drone_id -> (dx, dy, dz)
+        Drone 1 is leader at (0,0,0)
+        Followers are placed uniformly on a sphere
+        """
+        if n_drones <= 1:
+            return {1: (0.0, 0.0, 0.0)}
+
+        offsets = {1: (0.0, 0.0, 0.0)}  # leader
+        n = n_drones - 1
+
+        golden_angle = math.pi * (3 - math.sqrt(5))
+
+        for i in range(n):
+            y = 1 - 2 * i / (n - 1) if n > 1 else 0
+            r = math.sqrt(max(0.0, 1 - y*y))
+            theta = golden_angle * i
+
+            x = math.cos(theta) * r
+            z = math.sin(theta) * r
+
+            offsets[i + 2] = (
+                radius * x,
+                radius * y,
+                radius * z
+            )
+
+        return offsets
+
+    
+    def yaw_gain(self, d_goal, k_far=1.2, k_near=0.4, d_switch=2.0):
+        # smooth interpolation using tanh
+        a = math.tanh(d_goal / max(1e-6, d_switch))
+        return k_near + (k_far - k_near) * a
+
 
     def _ctrl_loop(self):
         my_id = int(self.get_parameter('MavicID').value)
@@ -148,93 +260,183 @@ class MP2Controller(Node):
         pos = self._get_my_position()
         if pos is None or self.flag_pos is None:
             return
+        if not self._z_ref_initialized:
+            self.z_ref = pos[2]
+            self._z_ref_initialized = True
 
-        # ---------- Get north_vector (world +Y expressed in body frame) ----------
+        # ---------- Compass / orientation ----------
         north_topic = f"/Mavic_2_PRO_{my_id}/compass/north_vector"
         north_vec = self.latest.get(my_id, {}).get(north_topic, None)
         if north_vec is None:
             return
 
         nx, ny, _ = north_vec
-        norm = math.sqrt(nx * nx + ny * ny)
-        if norm < 1e-6:
+        nrm = math.hypot(nx, ny)
+        if nrm < 1e-6:
             return
+        nx /= nrm
+        ny /= nrm
 
-        nx /= norm
-        ny /= norm
+        if my_id == self.leader_id:
+            goal = self.flag_pos
+        else:
+            leader_pos = self.latest.get(
+                self.leader_id, {}
+            ).get(f"/Mavic_2_PRO_{self.leader_id}/gps", None)
 
-        # ---------- Attraction toward flag (WORLD frame velocity) ----------
-        k_att = 0.6
-        k_rep = 1.0
-        d_safe = 0.9
+            if leader_pos is None:
+                return
 
-        dx = self.flag_pos[0] - pos[0]
-        dy = self.flag_pos[1] - pos[1]
-        dz = self.flag_pos[2] - pos[2]
+            dx_f, dy_f, dz_f = self.formation_offsets[my_id]
+            goal = (
+                leader_pos[0] + dx_f,
+                leader_pos[1] + dy_f,
+                leader_pos[2] + dz_f
+            )
 
-        vwx = k_att * dx
-        vwy = k_att * dy
-        vwz = 0.6 * dz
+        # ============================================================
+        # 1) ATTRACTION (WORLD FRAME, BOUNDED)
+        # ============================================================
+        dx = goal[0] - pos[0]
+        dy = goal[1] - pos[1]
+        dz = goal[2] - pos[2]
+        d_goal = np.sqrt(dx*dx + dy*dy + dz*dz)
 
-        # ---------- Repulsion from other drones (WORLD frame) ----------
+        # direction
+        if d_goal > 1e-6:
+            ux, uy, uz = dx/d_goal, dy/d_goal, dz/d_goal
+        else:
+            ux, uy, uz = 0.0, 0.0, 0.0
+
+        v_att_max = 2.0      # [m/s]
+        d0 = 3.0             # saturation distance
+        slow_radius = 1.5    # brake near goal
+
+        v_att = v_att_max * math.tanh(d_goal / d0)
+        if d_goal < slow_radius:
+            v_att *= d_goal / slow_radius
+
+        vwx = v_att * ux
+        vwy = v_att * uy
+        vwz = 1 * v_att * uz   # softer vertical motion
+
+        # ============================================================
+        # 2) REPULSION (WORLD FRAME, BOUNDED)
+        # ============================================================
+        R = 3.0           # influence radius
+        v_rep_max = 1.2   # max repulsion speed
+        p = 2.0           # shape exponent
+
+        neighbour_positions = []
         for j in range(1, n_drones + 1):
             if j == my_id:
                 continue
-
             pj = self.latest.get(j, {}).get(f"/Mavic_2_PRO_{j}/gps", None)
-            if pj is None:
-                continue
+            if pj is not None:
+                neighbour_positions.append(pj)
+        
+        scale = self.density_scale(pos, neighbour_positions, R=R, beta=0.4)
+        scale = min(scale, 3.0)  # cap max scaling
 
+        for pj in neighbour_positions:
             rx = pos[0] - pj[0]
             ry = pos[1] - pj[1]
-            r2 = rx * rx + ry * ry
-            if r2 < 1e-6:
+            rz = pos[2] - pj[2]
+            d = np.sqrt(rx*rx + ry*ry + rz*rz)
+
+            if d < 1e-6 or d >= R:
                 continue
 
-            d = math.sqrt(r2)
-            if d < d_safe:
-                rep = k_rep * (d_safe - d) / d
-                vwx += rep * rx
-                vwy += rep * ry
+            ux = rx / d
+            uy = ry / d
+            uz = rz / d
 
-        # ---------- Saturation ----------
-        v_xy_max = 1.5
-        v_z_max  = 0.8
+            s = (R - d) / R
+            g = v_rep_max * (s ** p) * scale
 
-        vxy = math.sqrt(vwx * vwx + vwy * vwy)
+            vwx += g * ux
+            vwy += g * uy
+            vwz += g * uz
+
+        # ============================================================
+        # 3) WORLD → BODY TRANSFORM
+        # ============================================================
+        # north_vector = world +Y in body frame
+        # rotation angle body->world:
+        psi = math.atan2(nx, ny)
+        c = np.cos(psi)
+        s = np.sin(psi)
+
+        vbx =  c * vwx + s * vwy
+        vby = -s * vwx + c * vwy
+
+        k_p_z = 1.2 # climb rate per meter error
+        k_d_z = 0.6 # damping using measured vertical speed
+        vz_max_hold = 1.0
+        z_err = self.z_ref - pos[2]
+        vz_meas = 0.0
+        sv_topic = f"/Mavic_2_PRO_{my_id}/gps/speed_vector"
+        sv = self.latest.get(my_id, {}).get(sv_topic, None)
+        if sv is not None:
+            vz_meas = float(sv[2])
+
+        vwz_hold = k_p_z * z_err - k_d_z * vz_meas
+        vwz_hold = max(-vz_max_hold, min(vz_max_hold, vwz_hold))
+
+        vwz = vwz + vwz_hold
+
+        # ============================================================
+        # 4) SATURATION
+        # ============================================================
+        v_xy_max = 2.0
+        v_z_max  = 1.0
+
+        vxy = math.hypot(vbx, vby)
         if vxy > v_xy_max:
             scale = v_xy_max / vxy
-            vwx *= scale
-            vwy *= scale
+            vbx *= scale
+            vby *= scale
 
         vwz = max(-v_z_max, min(v_z_max, vwz))
 
-        # ---------- WORLD → BODY transform (CORRECT + VERIFIED) ----------
-        # north_vector = (nx, ny) = world +Y in body frame
-        # forward (body x) = rotate north_vector +90° CCW = ( ny , -nx )
-        # left    (body y) = north_vector                 = ( nx ,  ny )
+        # ============================================================
+        # 5) YAW CONTROL (GAIN-SCHEDULED, STABLE)
+        # ============================================================
 
-        bx_x =  ny
-        bx_y = -nx
+        vxy = math.hypot(vbx, vby)
 
-        by_x =  nx
-        by_y =  ny
+        # Heading error only meaningful if we are actually moving
+        if vxy > 0.15:
+            theta_err = math.atan2(vby, vbx)   # body-frame heading error
+        else:
+            theta_err = 0.0
 
-        # Project world-frame velocities onto body axes
-        vbx = vwx * bx_x + vwy * bx_y
-        vby = vwx * by_x + vwy * by_y
-        vbz = vwz
+        # ---------- Gain scheduling ----------
+        k_yaw_max = 1.2        # maximum yaw rate gain
+        theta0    = 0.6        # [rad] where yaw gain saturates
+        v0        = 0.8        # [m/s] speed at which yaw fully activates
+        yaw_max   = 0.8        # [rad/s] hard safety limit
 
-        # ---------- Publish ----------
+        # Smooth angle-based gain
+        angle_gain = math.tanh(abs(theta_err) / theta0)
+
+        # Speed-based gating (no yaw when almost stopped)
+        speed_gain = min(1.0, vxy / v0)
+
+        yaw_rate = k_yaw_max * angle_gain * speed_gain * math.copysign(1.0, theta_err)
+
+        # Final saturation
+        yaw_rate = max(-yaw_max, min(yaw_max, yaw_rate))
+
+        # ============================================================
+        # 6) COMMAND
+        # ============================================================
         ctrl = Twist()
-        ctrl.linear = Vector3(x=float(vbx), y=float(vby), z=float(vbz))
-        ctrl.angular = Vector3(x=0.0, y=0.0, z=0.0)
-
+        ctrl.linear = Vector3(x=float(vbx), y=float(vby), z=float(vwz))
+        ctrl.angular = Vector3(x=0.0, y=0.0, z=float(yaw_rate))
         self.cmd_vel.publish(ctrl)
-
-
-        
-
+        #self.get_logger().info(f'(vwx, vwy): ({vwx}, {vwy}), (vbx, vby): {vbx}, {vby}, d_goal: {d_goal}')
+        self.get_logger().info(f'flag_pos: {self.flag_pos}, my_pos: {pos}, leader_id: {self.leader_id}')
 
 def main(args=None):
     rclpy.init(args=args)

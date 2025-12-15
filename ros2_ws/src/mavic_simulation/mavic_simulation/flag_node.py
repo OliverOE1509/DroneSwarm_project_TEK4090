@@ -7,11 +7,11 @@ import numpy as np
 class PublisherNode(Node):
     '''
     A node which publishes a target position at /flag/gps.
-    The flag is respawned at another position when atleast one drone is close enough. 
+    The flag is respawned at another position when at least one drone is close enough. 
     '''
     def __init__(self):
         super().__init__('flag_node')
-        self.declare_parameter('NDrones', 4)
+        #self.declare_parameter('NDrones', 2)
         self.declare_parameter('loop_freq_hz', 10.0)
         
         n_drones = self.get_parameter('NDrones').value
@@ -32,7 +32,7 @@ class PublisherNode(Node):
         self.flag_pug = self.create_publisher(PointStamped, '/flag/gps', 10)
         self.flag_x = 8.0
         self.flag_y = 7.0
-        self.flag_z = 5.0
+        self.flag_z = 3.0
         
         self.timer = self.create_timer(1/freq_hz, self.timer_callback)
 
@@ -54,7 +54,7 @@ class PublisherNode(Node):
         self.drone_positions[drone_id] = (float(msg.point.x), float(msg.point.y), float(msg.point.z))
 
     def timer_callback(self):
-        self.respawn_flag(radius = 0.2) #Meters
+        self.respawn_flag(radius = 0.8) #Meters
         msg = PointStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "world"
@@ -62,7 +62,7 @@ class PublisherNode(Node):
         msg.point.y = self.flag_y
         msg.point.z = self.flag_z
         self.flag_pug.publish(msg)
-        self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} | Drone positions: {self.drone_positions}')
+        #self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} ') # Add this for extra logging: | Drone positions: {self.drone_positions}
 
 
 
