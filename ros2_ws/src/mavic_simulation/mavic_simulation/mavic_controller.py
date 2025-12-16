@@ -296,25 +296,25 @@ class MP2Controller(Node):
         d0 = 3.0             # saturation distance
         slow_radius = 1.5    # brake near goal
 
-        under_repulsion = False
-        for pj in neighbour_positions:
-            d = np.sqrt((pos[0]-pj[0])**2 + (pos[1]-pj[1])**2 + (pos[2]-pj[2])**2)
-            if d < 5.0:  # Repulsion influence radius
-                under_repulsion = True
-                break
+        #under_repulsion = False
+        #for pj in neighbour_positions:
+        #    d = np.sqrt((pos[0]-pj[0])**2 + (pos[1]-pj[1])**2 + (pos[2]#-pj[2])**2)
+        #    if d < 5.0:  # Repulsion influence radius
+        #        under_repulsion = True
+        #        break
 
         # Adaptive gain (simplified version of Eq. 18)
-        if under_repulsion:
+        """ if under_repulsion:
             k_att = self.k_att_base  # Constant when near obstacles
         elif d_goal < self.rho_g:
             k_att = self.lambda_gain * self.k_att_base  # Moderate near goal
         else:
             # Inverse scaling with distance (prevents excessive force when far)
             k_att = min(self.tau_gain * self.k_att_base / max(d_goal, 0.1), 
-                        self.tau_gain * self.k_att_base)
+                        self.tau_gain * self.k_att_base) """
 
         # Apply adaptive gain to attraction
-        v_att = k_att * math.tanh(d_goal / d0)
+        v_att = v_att_max * math.tanh(d_goal / d0)
         if d_goal < slow_radius:
             v_att *= d_goal / slow_radius
 
