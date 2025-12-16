@@ -11,7 +11,7 @@ class PublisherNode(Node):
     '''
     def __init__(self):
         super().__init__('flag_node')
-        #self.declare_parameter('NDrones', 2)
+        self.declare_parameter('NDrones', 1)
         self.declare_parameter('loop_freq_hz', 10.0)
         
         n_drones = self.get_parameter('NDrones').value
@@ -45,7 +45,7 @@ class PublisherNode(Node):
                 # Respawn
                 self.flag_x = np.random.uniform(-10, 10)
                 self.flag_y = np.random.uniform(-10, 10)
-                self.flag_z = np.random.uniform(5, 15)
+                self.flag_z = np.random.uniform(2.0, 5.0)
                 self.get_logger().info(f'Flag respawned to: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} due to proximity to drone {drone_id}')
                 break
 

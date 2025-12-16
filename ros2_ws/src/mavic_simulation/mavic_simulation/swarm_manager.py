@@ -9,7 +9,7 @@ class SwarmManager(Node):
     def __init__(self):
         super().__init__('swarm_manager')
 
-        #self.declare_parameter('NDrones', 2)
+        self.declare_parameter('NDrones', 1)
         self.declare_parameter('loop_freq_hz', 2.0)
 
         self.n_drones = int(self.get_parameter('NDrones').value)

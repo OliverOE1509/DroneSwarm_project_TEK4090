@@ -29,7 +29,7 @@ class MP2Controller(Node):
         super().__init__('Mavic_2_PRO_ID_Controller')
         
         # Declare params with typed defaults
-        #self.declare_parameter('NDrones', 2)
+        self.declare_parameter('NDrones', 1)
         self.declare_parameter('MavicID', 1)
         self.declare_parameter('loop_freq_hz', 10.0)
         # Get values
@@ -38,7 +38,7 @@ class MP2Controller(Node):
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
 
         # Attempt at making swarm formation, as function of # of drones
-        self.formation_offsets = self.spherical_offsets(n_drones, radius = 2.5)
+        #self.formation_offsets = self.spherical_offsets(n_drones, radius = 2.5)
 
         self.declare_parameter('z_ref', 1.5)  # fallback
         self.z_ref = float(self.get_parameter('z_ref').value)
@@ -74,6 +74,20 @@ class MP2Controller(Node):
         self.last_consensus_time = self.get_clock().now()
         self.flag_pos = None
 
+        self.F_previous = (0.0, 0.0, 0.0)
+        self.alpha = 0.3
+        self.F_max = 8.0
+
+        self.z_ref_target = None
+        self.z_ref_current = None
+        self.z_transition_rate = 0.5  # m/s max transition rate
+
+        self.k_att_base = 2.0  # Base attraction gain
+        self.k_att_current = self.k_att_base
+        self.rho_g = 2.0  # Goal proximity threshold
+        self.lambda_gain = 1.5  # Moderate gain within goal proximity
+        self.tau_gain = 2.0  # Amplified gain when far but no obstacles
+
         # Create subscription to flag position
         self.flag_sub = self.create_subscription(
             PointStamped,
@@ -107,6 +121,10 @@ class MP2Controller(Node):
         my_id = int(self.get_parameter('MavicID').value)
         gps_topic = f'/Mavic_2_PRO_{my_id}/gps'
         return self.latest.get(my_id, {}).get(gps_topic, None)
+    
+    def _get_drone_position(self, drone_id):
+        gps_topic = f'/Mavic_2_PRO_{drone_id}/gps'
+        return self.latest.get(drone_id, {}).get(gps_topic, None)
 
     def _generic_cb(self, msg, topic: str, drone_id: int):
         """
@@ -115,6 +133,10 @@ class MP2Controller(Node):
         """
         pyval = self._unpack_msg(msg)
         self.latest.setdefault(drone_id, {})[topic] = pyval
+        if len(self.latest[drone_id]) > 10:  # Keep only 10 latest topics
+            keys = list(self.latest[drone_id].keys())
+            for key in keys[:-10]:  # Remove oldest
+                del self.latest[drone_id][key]
 
     def _unpack_msg(self, msg):
         """Deterministic unpacker for common messages."""
@@ -215,36 +237,6 @@ class MP2Controller(Node):
             if 1e-6 < d < R:
                 N_eff += np.exp(-d / (0.5*R))
         return 1.0 + beta * N_eff
-    
-    def spherical_offsets(self, n_drones, radius=2.5):
-        """
-        Returns dict: drone_id -> (dx, dy, dz)
-        Drone 1 is leader at (0,0,0)
-        Followers are placed uniformly on a sphere
-        """
-        if n_drones <= 1:
-            return {1: (0.0, 0.0, 0.0)}
-
-        offsets = {1: (0.0, 0.0, 0.0)}  # leader
-        n = n_drones - 1
-
-        golden_angle = math.pi * (3 - math.sqrt(5))
-
-        for i in range(n):
-            y = 1 - 2 * i / (n - 1) if n > 1 else 0
-            r = math.sqrt(max(0.0, 1 - y*y))
-            theta = golden_angle * i
-
-            x = math.cos(theta) * r
-            z = math.sin(theta) * r
-
-            offsets[i + 2] = (
-                radius * x,
-                radius * y,
-                radius * z
-            )
-
-        return offsets
 
     
     def yaw_gain(self, d_goal, k_far=1.2, k_near=0.4, d_switch=2.0):
@@ -256,6 +248,10 @@ class MP2Controller(Node):
     def _ctrl_loop(self):
         my_id = int(self.get_parameter('MavicID').value)
         n_drones = int(self.get_parameter('NDrones').value)
+        freq_hz = int(self.get_parameter('loop_freq_hz').value)
+
+        v_xy_max = 2.0
+        v_z_max  = 1.0
 
         pos = self._get_my_position()
         if pos is None or self.flag_pos is None:
@@ -263,6 +259,11 @@ class MP2Controller(Node):
         if not self._z_ref_initialized:
             self.z_ref = pos[2]
             self._z_ref_initialized = True
+
+        if not hasattr(self, '_z_ref_initialized') or not self._z_ref_initialized:
+            self.z_ref = pos[2]
+            self._z_ref_initialized = True
+        goal = self.flag_pos
 
         # ---------- Compass / orientation ----------
         north_topic = f"/Mavic_2_PRO_{my_id}/compass/north_vector"
@@ -276,23 +277,6 @@ class MP2Controller(Node):
             return
         nx /= nrm
         ny /= nrm
-
-        if my_id == self.leader_id:
-            goal = self.flag_pos
-        else:
-            leader_pos = self.latest.get(
-                self.leader_id, {}
-            ).get(f"/Mavic_2_PRO_{self.leader_id}/gps", None)
-
-            if leader_pos is None:
-                return
-
-            dx_f, dy_f, dz_f = self.formation_offsets[my_id]
-            goal = (
-                leader_pos[0] + dx_f,
-                leader_pos[1] + dy_f,
-                leader_pos[2] + dz_f
-            )
 
         # ============================================================
         # 1) ATTRACTION (WORLD FRAME, BOUNDED)
@@ -312,7 +296,25 @@ class MP2Controller(Node):
         d0 = 3.0             # saturation distance
         slow_radius = 1.5    # brake near goal
 
-        v_att = v_att_max * math.tanh(d_goal / d0)
+        under_repulsion = False
+        for pj in neighbour_positions:
+            d = np.sqrt((pos[0]-pj[0])**2 + (pos[1]-pj[1])**2 + (pos[2]-pj[2])**2)
+            if d < 5.0:  # Repulsion influence radius
+                under_repulsion = True
+                break
+
+        # Adaptive gain (simplified version of Eq. 18)
+        if under_repulsion:
+            k_att = self.k_att_base  # Constant when near obstacles
+        elif d_goal < self.rho_g:
+            k_att = self.lambda_gain * self.k_att_base  # Moderate near goal
+        else:
+            # Inverse scaling with distance (prevents excessive force when far)
+            k_att = min(self.tau_gain * self.k_att_base / max(d_goal, 0.1), 
+                        self.tau_gain * self.k_att_base)
+
+        # Apply adaptive gain to attraction
+        v_att = k_att * math.tanh(d_goal / d0)
         if d_goal < slow_radius:
             v_att *= d_goal / slow_radius
 
@@ -323,7 +325,7 @@ class MP2Controller(Node):
         # ============================================================
         # 2) REPULSION (WORLD FRAME, BOUNDED)
         # ============================================================
-        R = 3.0           # influence radius
+        R = 5.0           # influence radius
         v_rep_max = 1.2   # max repulsion speed
         p = 2.0           # shape exponent
 
@@ -339,6 +341,8 @@ class MP2Controller(Node):
         scale = min(scale, 3.0)  # cap max scaling
 
         for pj in neighbour_positions:
+            if my_id == self.leader_id:
+                continue # To avoid making a formation around a flag, so repulsion only applies to followers
             rx = pos[0] - pj[0]
             ry = pos[1] - pj[1]
             rz = pos[2] - pj[2]
@@ -352,11 +356,41 @@ class MP2Controller(Node):
             uz = rz / d
 
             s = (R - d) / R
-            g = v_rep_max * (s ** p) * scale
+            if my_id == self.leader_id:
+                # Leader repels less strongly from followers
+                rep_strength = v_rep_max * 0.5
+            elif j == self.leader_id:  # This follower is repelling from leader
+                # Followers repel more strongly from leader
+                rep_strength = v_rep_max * 0.8
+            else:
+                # Follower-follower repulsion
+                rep_strength = v_rep_max
+            
+            g = rep_strength * (s ** p) * scale
 
             vwx += g * ux
             vwy += g * uy
             vwz += g * uz
+
+        F_world = (vwx, vwy, vwz)
+        F_smooth = (
+            self.alpha * self.F_previous[0] + (1 - self.alpha) * F_world[0],
+            self.alpha * self.F_previous[1] + (1 - self.alpha) * F_world[1],
+            self.alpha * self.F_previous[2] + (1 - self.alpha) * F_world[2]
+        )
+        self.F_previous = F_smooth
+
+        force_mag = math.sqrt(F_smooth[0]**2 + F_smooth[1]**2 + F_smooth[2]**2)
+        if force_mag > self.F_max:
+            scale = self.F_max / force_mag
+            F_smooth = (
+                F_smooth[0] * scale,
+                F_smooth[1] * scale,
+                F_smooth[2] * scale
+            )
+        
+        # Update velocities with smoothed force
+        vwx, vwy, vwz = F_smooth
 
         # ============================================================
         # 3) WORLD → BODY TRANSFORM
@@ -373,7 +407,30 @@ class MP2Controller(Node):
         k_p_z = 1.2 # climb rate per meter error
         k_d_z = 0.6 # damping using measured vertical speed
         vz_max_hold = 1.0
-        z_err = self.z_ref - pos[2]
+        z_ref = self.z_ref
+        if my_id == self.leader_id:
+            self.z_ref_target = goal[2]
+        else:
+            if self.leader_id is not None:
+                leader_pos = self._get_drone_position(self.leader_id)
+                if leader_pos is not None:
+                    self.z_ref_target = leader_pos[2]
+                else:
+                    self.z_ref_target = self.z_ref
+            else:
+                self.z_ref_target = self.z_ref
+
+        if self.z_ref_current is None:
+            self.z_ref_current = pos[2]
+        
+        dz = self.z_ref_target - self.z_ref_current
+        max_dz = self.z_transition_rate * (1.0 / freq_hz)  # Max change per timestep
+        if abs(dz) > max_dz:
+            dz = math.copysign(max_dz, dz)
+        self.z_ref_current += dz
+
+        # Use smoothed reference for control
+        z_err = self.z_ref_current - pos[2]
         vz_meas = 0.0
         sv_topic = f"/Mavic_2_PRO_{my_id}/gps/speed_vector"
         sv = self.latest.get(my_id, {}).get(sv_topic, None)
@@ -383,13 +440,16 @@ class MP2Controller(Node):
         vwz_hold = k_p_z * z_err - k_d_z * vz_meas
         vwz_hold = max(-vz_max_hold, min(vz_max_hold, vwz_hold))
 
-        vwz = vwz + vwz_hold
+        if my_id == self.leader_id:
+            # Leader: go to flag in Z
+            vwz = max(-v_z_max, min(v_z_max, vwz))
+        else:
+            # Followers: STRICT altitude hold only
+            vwz = vwz_hold
 
         # ============================================================
         # 4) SATURATION
         # ============================================================
-        v_xy_max = 2.0
-        v_z_max  = 1.0
 
         vxy = math.hypot(vbx, vby)
         if vxy > v_xy_max:
@@ -417,32 +477,34 @@ class MP2Controller(Node):
         v0        = 0.8        # [m/s] speed at which yaw fully activates
         yaw_max   = 0.8        # [rad/s] hard safety limit
 
-        # Smooth angle-based gain
         angle_gain = math.tanh(abs(theta_err) / theta0)
-
-        # Speed-based gating (no yaw when almost stopped)
         speed_gain = min(1.0, vxy / v0)
-
         yaw_rate = k_yaw_max * angle_gain * speed_gain * math.copysign(1.0, theta_err)
-
-        # Final saturation
         yaw_rate = max(-yaw_max, min(yaw_max, yaw_rate))
 
         # ============================================================
         # 6) COMMAND
         # ============================================================
+        if not all(math.isfinite(x) for x in [vbx, vby, vwz, yaw_rate]):
+            self.get_logger().error(f"Drone {self.my_id}: Non-finite control values! Resetting to zero.")
+            vbx, vby, vwz, yaw_rate = 0.0, 0.0, 0.0, 0.0
+
+        self.get_logger().info(
+            f"[DEBUG] id={my_id} pos=({pos[0]:.2f},{pos[1]:.2f},{pos[2]:.2f}) "
+            f"leader={self.leader_id} "
+            f"goal=({goal[0]:.2f},{goal[1]:.2f},{goal[2]:.2f}) "
+            #f"close_to={close_drones}"
+        )
         ctrl = Twist()
         ctrl.linear = Vector3(x=float(vbx), y=float(vby), z=float(vwz))
         ctrl.angular = Vector3(x=0.0, y=0.0, z=float(yaw_rate))
         self.cmd_vel.publish(ctrl)
-        #self.get_logger().info(f'(vwx, vwy): ({vwx}, {vwy}), (vbx, vby): {vbx}, {vby}, d_goal: {d_goal}')
-        self.get_logger().info(f'flag_pos: {self.flag_pos}, my_pos: {pos}, leader_id: {self.leader_id}')
-
+        
+        
 def main(args=None):
     rclpy.init(args=args)
     mp2c = MP2Controller()
     rclpy.spin(mp2c)
-
     mp2c.destroy_node()
     rclpy.shutdown()
 
