@@ -62,7 +62,7 @@ class PublisherNode(Node):
         msg.point.y = self.flag_y
         msg.point.z = self.flag_z
         self.flag_pug.publish(msg)
-        #self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} ') # Add this for extra logging: | Drone positions: {self.drone_positions}
+        self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} ') # Add this for extra logging: | Drone positions: {self.drone_positions}
 
 
 

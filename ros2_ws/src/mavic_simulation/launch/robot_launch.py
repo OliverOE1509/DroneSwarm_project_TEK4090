@@ -106,15 +106,7 @@ def generate_launch_description():
         )
         actions.append(flag_node)
 
-        swarm_node = Node(
-            package = 'mavic_simulation',
-            executable = 'swarm_manager',
-            parameters = [{'NDrones':  num_drones},
-                            {'use_sim_time': True},
-                            {'loop_freq_hz':2.0}]
-        )
-        actions.append(swarm_node)
-
+        
         # Instancia os drivers para a quantidade de drones desejada
         mavic_drivers = {}
         mavic_controllers = {}
@@ -155,7 +147,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'NDrones',
-            default_value='2',
+            default_value='4',
             description='Number of drones to spawn in simulation'
         ),
         webots,
