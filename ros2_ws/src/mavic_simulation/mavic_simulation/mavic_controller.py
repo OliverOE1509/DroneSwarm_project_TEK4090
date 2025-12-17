@@ -35,6 +35,8 @@ class MP2Controller(Node):
         n_drones = int(self.get_parameter('NDrones').value)
         my_id = int(self.get_parameter('MavicID').value)
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
+        self.my_id = my_id
+        self.n_drones = n_drones
 
         # keep references so subscriptions aren't GC'd
         self._subs = []
@@ -139,27 +141,147 @@ class MP2Controller(Node):
         if n < eps:
             return (0.0, 0.0, 0.0), 0.0
         return (v[0]/n, v[1]/n, v[2]/n), n
-
-    def _attraction_velocity(self):
-        pass
-       
-
-    def _repulsion_velocity(self):
-        pass
-       
     
-    def _ctrl_loop(self):
-        my_id = int(self.get_parameter('MavicID').value)
-        n_drones = int(self.get_parameter('NDrones').value)
-        freq_hz = int(self.get_parameter('loop_freq_hz').value)
+    def _dist(self, x1, x2):
+        return self._norm3(np.asarray(x1) - np.asarray(x2))
 
+    def angle_between(v1, v2):
+        v1 = np.asarray(v1, dtype=float)
+        v2 = np.asarray(v2, dtype=float)
+
+        dot = np.dot(v1, v2)
+        n1 = np.linalg.norm(v1)
+        n2 = np.linalg.norm(v2)
+
+        # guard against numerical drift
+        cos_theta = dot / (n1 * n2)
+        cos_theta = np.clip(cos_theta, -1.0, 1.0)
+
+        return np.arccos(cos_theta)
+    
+    def rotate_vector_in_plane(self, v1, v2, theta, eps=1e-8):
+        v1 = np.asarray(v1, dtype=float)
+        v2 = np.asarray(v2, dtype=float)
+
+        n1 = self._norm3(v1)
+        if n1 < eps:
+            raise ValueError("v1 must be non-zero")
+
+        e1 = v1 / n1
+
+        # orthogonalize v2 against v1
+        v2o = v2 - np.dot(e1, v2) * e1
+        n2 = self._norm3(v2o)
+        e2 = v2o / n2
+
+        return e1 * np.cos(theta) + e2 * np.sin(theta)
+
+
+    def _attraction_velocity(self, zeta, target_pos, agent_pos):
+        tp = np.asarray(target_pos)
+        ap = np.asarray(agent_pos)
+        return (tp-ap)*zeta
+       
+    def _repulsion_velocity(self, eta, cutoff, obstacle_pos, agent_pos):
+        op = np.asarray(obstacle_pos)
+        ap = np.asarray(agent_pos)
+        ir = op-ap
+        r = self._norm3(ir)
+        
+        if r > cutoff or r < 1e-6:
+            return np.asarray([0,0,0])
+        
+        return eta * ( (1/cutoff) - (1/r) ) * (1/r**3) * ir
+    
+           
+    def _get_lin_vel_vector(self, zeta=1, eta=1, cutoff=1):
+        v = np.asarray([0,0,0])
+        att = True
+        my_pos = self._get_latest("gps", self.my_id)
+        for i in range(1, self.n_drones + 1):
+            if i != self.my_id:
+                i_pos = self._get_latest("gps", i)
+                v += self._repulsion_velocity(eta, cutoff, i_pos, my_pos)
+                if self._dist(i_pos, self.flag_pos) <= cutoff:
+                    att = False
+        if att:
+            v += self._attraction_velocity(zeta, self.flag_pos, my_pos)
+        return v
+    
+    def _constrain_lin_vel_vector(self, v):
+        curr_v = self._get_latest("speed_vector", self.my_id)
         v_xy_max = 2.0
         v_z_max  = 1.0
+        dtheta_max = np.pi/2 #Radians. 
+        dv_max = 1 
+        vx ,vy, vz = v
+
+        #Enforce max velocity along z-axis
+        if abs(vz) > v_z_max:
+            vz = np.sign(vz)*v_z_max
+
+        #Enforce max velocity in the xy-plane
+        xynorm = math.sqrt(vx**2 + vy**2)
+        if xynorm > v_xy_max:
+            adj = v_xy_max/xynorm
+            vx = vx * adj
+            vy = vy * adj 
+
+        v = np.asarray([vx,vy,vz])
+        if self._norm3(curr_v) < 1e-6:
+            return v
+
+        #Enforce max change in velocity
+        if abs(self._norm3(v) - self._norm3(curr_v)) > dv_max:
+            v = v * ((self._norm3(curr_v) + dv_max)/self._norm3(v))
+
+        #Enforce max change in direction of travel
+        if self.angle_between(v, curr_v) > dtheta_max:
+            v = self.rotate_vector_in_plane(self, curr_v, v, dtheta_max)
         
+        return v
         
+    def _world_to_body(self, v):
+        north_vec = self._get_latest("north_vector", self.my_id)
+        nx, ny = north_vec[0], north_vec[1]
+        psi = math.atan2(nx, ny)  # world→body yaw
+        c = math.cos(psi)
+        s = math.sin(psi)
+        vbx =  c * v[0] + s * v[1]
+        vby = -s * v[0] + c * v[1]
+        vbz = v[2]  # unchanged (flat assumption)
+        return np.asarray([vbx,vby,vbz])
+    
+    def _get_angular(self, v_b, gamma):
+        vx, vy = v_b[0], v_b[1]
+
+        # If no horizontal motion, do not rotate
+        if vx == 0.0 and vy == 0.0:
+            return 0.0
+
+        # Yaw error in radians
+        theta_err = math.atan2(vy, vx)
+
+        # Scale by gain
+        w_z = gamma * theta_err
+
+        return w_z
+        
+
+
+    def _ctrl_loop(self): 
+        #Get the desired linear velocity vector in world frame coordinates
+        v = self._get_lin_vel_vector(zeta=0.5, eta=1, cutoff=1.5)
+        #Constrain the velocity vector
+        v = self._constrain_lin_vel_vector(v)
+        #Convert velocity vector to body frame
+        v_b = self._world_to_body(v)
+        #Get angular velocity 
+        w = self._get_angular(v_b, gamma=1)
+        #Publish control
         ctrl = Twist()
-        ctrl.linear = Vector3(x=float(vbx), y=float(vby), z=float(vwz))
-        ctrl.angular = Vector3(x=0.0, y=0.0, z=float(yaw_rate))
+        ctrl.linear = Vector3(x=float(v_b[0]), y=float(v_b[1]), z=float(v_b[2]))
+        ctrl.angular = Vector3(x=0.0, y=0.0, z=float(w))
         self.cmd_vel.publish(ctrl)
         
         
