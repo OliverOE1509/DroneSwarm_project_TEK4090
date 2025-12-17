@@ -28,7 +28,12 @@ Icon
 # Ignore latex build files, only commit tex documents
 Conference-LaTeX-template_10-17-19/out/
 IEEEtran.cls
-
+**.aux
+**.fls
+**.pdf
+**.fdb_latexmk
+**.synctex.gz
+**.cls
 
 
 # Thumbnails
