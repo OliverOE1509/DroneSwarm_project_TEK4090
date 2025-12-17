@@ -282,4 +282,8 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+#Latex resources
+!*.tex
+TEK4090_course_paper*
+
 # End of https://www.toptal.com/developers/gitignore/api/linux,windows,macos,python,ros2
