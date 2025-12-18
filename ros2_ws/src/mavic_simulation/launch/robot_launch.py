@@ -150,10 +150,9 @@ def generate_launch_description():
             default_value='4',
             description='Number of drones to spawn in simulation'
         ),
-        webots,
-
-        webots._supervisor,
         OpaqueFunction(function=setup_opaque_function),
+        webots,
+        webots._supervisor,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,

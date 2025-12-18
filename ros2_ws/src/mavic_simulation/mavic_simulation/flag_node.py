@@ -16,7 +16,7 @@ class PublisherNode(Node):
         
         n_drones = self.get_parameter('NDrones').value
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
-        self.rng = np.random.default_rng(seed=1)
+        self.rng = np.random.default_rng()
         self.drone_positions = {  } # drone_id: (x,y,z)
         self._subs = []
         for i in range(1, n_drones +1):
@@ -30,9 +30,9 @@ class PublisherNode(Node):
             )
             self._subs.append(sub)
         self.flag_pug = self.create_publisher(PointStamped, '/flag/gps', 10)
-        self.flag_x = 8.0
-        self.flag_y = 7.0
-        self.flag_z = 3.0
+        self.flag_x = self.rng.uniform(-10, 10)
+        self.flag_y = self.rng.uniform(-10, 10)
+        self.flag_z = self.rng.uniform(3.0, 5.0)
         
         self.timer = self.create_timer(1/freq_hz, self.timer_callback)
 
@@ -45,7 +45,7 @@ class PublisherNode(Node):
                 # Respawn
                 self.flag_x = self.rng.uniform(-10, 10)
                 self.flag_y = self.rng.uniform(-10, 10)
-                self.flag_z = self.rng.uniform(2.0, 5.0)
+                self.flag_z = self.rng.uniform(3.0, 5.0)
                 self.get_logger().info(f'Flag respawned to: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} due to proximity to drone {drone_id}')
                 break
 

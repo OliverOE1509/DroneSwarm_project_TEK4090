@@ -210,17 +210,15 @@ class MP2Controller(Node):
             if i != self.my_id:
                 i_pos = self._get_latest("gps", i)
                 v += self._repulsion_velocity(eta, cutoff, i_pos, my_pos) 
-                #self.help_debug(f'id: {self.my_id}, repulse: {self._repulsion_velocity(eta, cutoff, i_pos, my_pos) }')
                 if self._dist(i_pos, self.flag_pos) <= cutoff:
                     att = False
         if att:
-            #self.help_debug(f'id: {self.my_id}, attraction: {self._attraction_velocity(zeta, self.flag_pos, my_pos)}')
             v += self._attraction_velocity(zeta, self.flag_pos, my_pos)
         return v
     
     def _constrain_lin_vel_vector(self, v):
         curr_v = self._get_latest("speed_vector", self.my_id)
-        v_xy_max = 2.0
+        v_xy_max = 1.0
         v_z_max  = 1.0
         dtheta_max = np.pi/2 #Radians. 
         dv_max = 1 
@@ -280,11 +278,14 @@ class MP2Controller(Node):
         return w_z
     
     def debug(self, v_b, v, w):
+        
         flag_msg = f'flag: {self.flag_pos}'
         control_input_body = f'BODY id: {self.my_id}, v_b: {v_b}, angular: {w}'
         control_input_world = f'WORLD id: {self.my_id}, v: {v}'
         gps_msg = f'id: {self.my_id}, gps: {self._get_latest("gps", self.my_id)}'
         vel_msg = f'id: {self.my_id}, vel: {self._get_latest("speed_vector", self.my_id)}'
+        timestamp = f'{self.get_clock().now()}'
+        self.get_logger().debug(timestamp)
         self.get_logger().debug(flag_msg)
         self.get_logger().debug(control_input_body)
         self.get_logger().debug(control_input_world)
@@ -297,7 +298,7 @@ class MP2Controller(Node):
         if self.flag_pos is None:
             return
         #Get the desired linear velocity vector in world frame coordinates
-        v = self._get_lin_vel_vector(zeta=0.25, eta=0.5, cutoff=5.0)
+        v = self._get_lin_vel_vector(zeta=0.5, eta=2, cutoff=1.0)
         #Constrain the velocity vector
         v = self._constrain_lin_vel_vector(v)
         #Convert velocity vector to body frame
