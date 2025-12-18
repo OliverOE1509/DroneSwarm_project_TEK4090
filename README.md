@@ -1,47 +1,38 @@
-# Webots-Docker
+# Drone Swarm Simulation with APF Controller
+This repository contains a simulation environment for multiple DJI Mavic 2 Pro drones operating in a Webots world. The drones utilize an Artificial Potential Field (APF) controller to navigate through randomly generated waypoints in continuous operation.
 
-[![Dockerhub](https://img.shields.io/docker/automated/cyberbotics/webots.svg)](https://hub.docker.com/r/cyberbotics/webots)
-[![Test](https://github.com/cyberbotics/webots-docker/workflows/Test/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3ATest)
-[![Docker Image CI](https://github.com/cyberbotics/webots-docker/workflows/Docker%20Image%20CI/badge.svg)](https://github.com/cyberbotics/webots-docker/actions?query=workflow%3A%22Docker+Image+CI%22)
+## Credits
+This project extends the following foundational work:
+* [Webots Docker](https://github.com/cyberbotics/webots-docker) - Containerized Webots environment
+* [Drone Simulation](https://github.com/patrickpbarroso/drone-simulation/tree/main) - Base drone simulation framework
 
-EDIT FRA OLIVER: Hallo Daniel :). Jeg har bare klonet dokumentasjonen til dette imaget på Docker hub: https://hub.docker.com/r/cyberbotics/webots. For å starte webots inne i containeren, måtte jeg kjøre containeren med GPU akselerasjon, måtte da installere nvidia-docker2. Det er fordi jeg er på Linux Ubuntu. Har ikke satt meg inn i hvordan det funker på Windows, men skal funke greit med desktop og litt veivisning fra chatgpt. Dokumentasjonen til webots om docker bruk, dekker bare for linux. Linken til Webots dokumentasjon er den første linken du ser under.
+## Version Requirements
+* Webots: R2025a
+* ROS 2: Humble distribution
+* Docker: Latest recommended version
+* Hardware: NVIDIA GPU (for accelerated simulation)
+* Linux, UNIX or WSL2 host OS. 
 
-This repository is used to create a Docker image with Webots already pre-installed.
-To use the already available image please follow the [Webots installation instructions](https://cyberbotics.com/doc/guide/installation-procedure#installing-the-docker-image).
-
-
-## Build the Image
-
-Use the following command to build the docker container from the Dockerfile:
-
+## Quick start guide
+Clone Repository.
 ``` bash
-docker build . --file Dockerfile --tag cyberbotics/webots:latest --build-arg WEBOTS_PACKAGE_PREFIX=_ubuntu-22.04
+git clone https://github.com/OliverOE1509/DroneSwarm_project_TEK4090.git
+cd DroneSwarm_project_TEK4090
 ```
-
-## Build the Webots.Cloud Images
-
-Use the following command to build the docker container from the Dockerfile_webots_cloud:
-
+Build Docker Image.
 ``` bash
-docker build . --file Dockerfile_webots_cloud --tag cyberbotics/webots.cloud:latest
+docker build -t webots-drone .
 ```
-
-## Run a Docker container from the Image
-
-You can run the previously built image with:
-
+Configure Display Permissions.
 ``` bash
-docker run -it cyberbotics/webots:latest /bin/bash
+xhost +local:docker
 ```
-
-## Clean the temporary Images
-
-You can run the following command to remove **all** temporary images:
-
+Launch Simulation Environment.
 ``` bash
-docker system prune
+./run.sh
 ```
-
-
-
+Start Simulation.
+``` bash
+./start_simulation.sh
+```
 
