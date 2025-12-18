@@ -37,6 +37,7 @@ class MP2Controller(Node):
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
         self.my_id = my_id
         self.n_drones = n_drones
+        self.flag_pos = None
 
         # keep references so subscriptions aren't GC'd
         self._subs = []
@@ -126,12 +127,15 @@ class MP2Controller(Node):
             except Exception:
                 pass
         return msg
+    
+    def help_debug(self, msg):
+        return self.get_logger().debug(f'{msg}')
 
     def _get_latest(self, topic, drone_id):
-        for topic in STATE_TOPICS.keys():
-            if topic.endswith(topic):
-                topic.replace("ID", str(drone_id))
-                return self.latest.get(drone_id, {}).get(topic, None)
+        for tmpl in STATE_TOPICS.keys():
+            if tmpl.endswith(f'/{topic}'):
+                top = tmpl.replace("ID", str(drone_id))
+                return self.latest.get(drone_id, {}).get(top, None)
 
     def _norm3(self, v):
         return math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
@@ -145,7 +149,7 @@ class MP2Controller(Node):
     def _dist(self, x1, x2):
         return self._norm3(np.asarray(x1) - np.asarray(x2))
 
-    def angle_between(v1, v2):
+    def angle_between(self, v1, v2):
         v1 = np.asarray(v1, dtype=float)
         v2 = np.asarray(v2, dtype=float)
 
@@ -194,17 +198,19 @@ class MP2Controller(Node):
         return eta * ( (1/cutoff) - (1/r) ) * (1/r**3) * ir
     
            
-    def _get_lin_vel_vector(self, zeta=1, eta=1, cutoff=1):
-        v = np.asarray([0,0,0])
+    def _get_lin_vel_vector(self, zeta, eta, cutoff):
+        v = np.asarray([0.0,0.0,0.0])
         att = True
         my_pos = self._get_latest("gps", self.my_id)
         for i in range(1, self.n_drones + 1):
             if i != self.my_id:
                 i_pos = self._get_latest("gps", i)
-                v += self._repulsion_velocity(eta, cutoff, i_pos, my_pos)
+                v += self._repulsion_velocity(eta, cutoff, i_pos, my_pos) 
+                self.help_debug(f'id: {self.my_id}, repulse: {self._repulsion_velocity(eta, cutoff, i_pos, my_pos) }')
                 if self._dist(i_pos, self.flag_pos) <= cutoff:
                     att = False
         if att:
+            self.help_debug(f'id: {self.my_id}, attraction: {self._attraction_velocity(zeta, self.flag_pos, my_pos)}')
             v += self._attraction_velocity(zeta, self.flag_pos, my_pos)
         return v
     
@@ -232,13 +238,15 @@ class MP2Controller(Node):
             return v
 
         #Enforce max change in velocity
-        if abs(self._norm3(v) - self._norm3(curr_v)) > dv_max:
-            v = v * ((self._norm3(curr_v) + dv_max)/self._norm3(v))
+        dv = v - np.asarray(curr_v)
+        dv_norm = self._norm3(dv)
+        if dv_norm > dv_max:
+            v = np.asarray(curr_v) + dv * (dv_max / dv_norm)
 
         #Enforce max change in direction of travel
         if self.angle_between(v, curr_v) > dtheta_max:
-            v = self.rotate_vector_in_plane(self, curr_v, v, dtheta_max)
-        
+            v = self.rotate_vector_in_plane(curr_v, v, dtheta_max)
+
         return v
         
     def _world_to_body(self, v):
@@ -266,12 +274,13 @@ class MP2Controller(Node):
         w_z = gamma * theta_err
 
         return w_z
-        
-
 
     def _ctrl_loop(self): 
+
+        if self.flag_pos is None:
+            return
         #Get the desired linear velocity vector in world frame coordinates
-        v = self._get_lin_vel_vector(zeta=0.5, eta=1, cutoff=1.5)
+        v = self._get_lin_vel_vector(zeta=0.5, eta=2.0, cutoff=1.0)
         #Constrain the velocity vector
         v = self._constrain_lin_vel_vector(v)
         #Convert velocity vector to body frame
