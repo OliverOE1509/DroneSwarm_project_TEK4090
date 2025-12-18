@@ -16,7 +16,7 @@ class PublisherNode(Node):
         
         n_drones = self.get_parameter('NDrones').value
         freq_hz = int(self.get_parameter('loop_freq_hz').value)
-       
+        self.rng = np.random.default_rng(seed=1)
         self.drone_positions = {  } # drone_id: (x,y,z)
         self._subs = []
         for i in range(1, n_drones +1):
@@ -43,9 +43,9 @@ class PublisherNode(Node):
             dist = np.linalg.norm(flag_vec - drone_vec)
             if dist < radius:
                 # Respawn
-                self.flag_x = np.random.uniform(-10, 10)
-                self.flag_y = np.random.uniform(-10, 10)
-                self.flag_z = np.random.uniform(2.0, 5.0)
+                self.flag_x = self.rng.uniform(-10, 10)
+                self.flag_y = self.rng.uniform(-10, 10)
+                self.flag_z = self.rng.uniform(2.0, 5.0)
                 self.get_logger().info(f'Flag respawned to: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} due to proximity to drone {drone_id}')
                 break
 
@@ -62,7 +62,7 @@ class PublisherNode(Node):
         msg.point.y = self.flag_y
         msg.point.z = self.flag_z
         self.flag_pug.publish(msg)
-        self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} ') # Add this for extra logging: | Drone positions: {self.drone_positions}
+        #self.get_logger().info(f'Publishing flag position at: x={self.flag_x}, y={self.flag_y}, z={self.flag_z} ') # Add this for extra logging: | Drone positions: {self.drone_positions}
 
 
 

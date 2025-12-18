@@ -25,6 +25,7 @@ class MP2Controller(Node):
     def __init__(self):
         #Init Node
         super().__init__('Mavic_2_PRO_ID_Controller')
+        self.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
 
         # Declare params with typed defaults
         self.declare_parameter('NDrones', 1)
@@ -129,7 +130,7 @@ class MP2Controller(Node):
         return msg
     
     def help_debug(self, msg):
-        return self.get_logger().debug(f'{msg}')
+        return self.get_logger().info(f'{msg}')
 
     def _get_latest(self, topic, drone_id):
         for tmpl in STATE_TOPICS.keys():
@@ -167,6 +168,9 @@ class MP2Controller(Node):
         v1 = np.asarray(v1, dtype=float)
         v2 = np.asarray(v2, dtype=float)
 
+        # debug theta
+        self.help_debug(f'theta: {theta}')
+
         n1 = self._norm3(v1)
         if n1 < eps:
             raise ValueError("v1 must be non-zero")
@@ -193,7 +197,7 @@ class MP2Controller(Node):
         r = self._norm3(ir)
         
         if r > cutoff or r < 1e-6:
-            return np.asarray([0,0,0])
+            return np.asarray([0.0,0.0,0.0])
         
         return eta * ( (1/cutoff) - (1/r) ) * (1/r**3) * ir
     
@@ -206,11 +210,11 @@ class MP2Controller(Node):
             if i != self.my_id:
                 i_pos = self._get_latest("gps", i)
                 v += self._repulsion_velocity(eta, cutoff, i_pos, my_pos) 
-                self.help_debug(f'id: {self.my_id}, repulse: {self._repulsion_velocity(eta, cutoff, i_pos, my_pos) }')
+                #self.help_debug(f'id: {self.my_id}, repulse: {self._repulsion_velocity(eta, cutoff, i_pos, my_pos) }')
                 if self._dist(i_pos, self.flag_pos) <= cutoff:
                     att = False
         if att:
-            self.help_debug(f'id: {self.my_id}, attraction: {self._attraction_velocity(zeta, self.flag_pos, my_pos)}')
+            #self.help_debug(f'id: {self.my_id}, attraction: {self._attraction_velocity(zeta, self.flag_pos, my_pos)}')
             v += self._attraction_velocity(zeta, self.flag_pos, my_pos)
         return v
     
@@ -274,19 +278,34 @@ class MP2Controller(Node):
         w_z = gamma * theta_err
 
         return w_z
+    
+    def debug(self, v_b, v, w):
+        flag_msg = f'flag: {self.flag_pos}'
+        control_input_body = f'BODY id: {self.my_id}, v_b: {v_b}, angular: {w}'
+        control_input_world = f'WORLD id: {self.my_id}, v: {v}'
+        gps_msg = f'id: {self.my_id}, gps: {self._get_latest("gps", self.my_id)}'
+        vel_msg = f'id: {self.my_id}, vel: {self._get_latest("speed_vector", self.my_id)}'
+        self.get_logger().debug(flag_msg)
+        self.get_logger().debug(control_input_body)
+        self.get_logger().debug(control_input_world)
+        self.get_logger().debug(gps_msg)
+        self.get_logger().debug(vel_msg)
+    
 
     def _ctrl_loop(self): 
 
         if self.flag_pos is None:
             return
         #Get the desired linear velocity vector in world frame coordinates
-        v = self._get_lin_vel_vector(zeta=0.5, eta=2.0, cutoff=1.0)
+        v = self._get_lin_vel_vector(zeta=0.25, eta=0.5, cutoff=5.0)
         #Constrain the velocity vector
         v = self._constrain_lin_vel_vector(v)
         #Convert velocity vector to body frame
         v_b = self._world_to_body(v)
         #Get angular velocity 
         w = self._get_angular(v_b, gamma=1)
+        # log inputs and outputs
+        self.debug(v_b, v, w)
         #Publish control
         ctrl = Twist()
         ctrl.linear = Vector3(x=float(v_b[0]), y=float(v_b[1]), z=float(v_b[2]))
