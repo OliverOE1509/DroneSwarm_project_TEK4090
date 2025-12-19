@@ -1,3 +1,22 @@
+nohup: ignoring input
+[INFO] [launch]: All log files can be found below /root/.ros/log/2025-12-18-15-12-51-690871-oliver-System-Product-Name-3987
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [flag_node-1]: process started with pid [3999]
+[INFO] [webots_controller_Mavic_2_PRO_1-2]: process started with pid [4001]
+[INFO] [mavic_controller-3]: process started with pid [4003]
+[INFO] [webots_controller_Mavic_2_PRO_2-4]: process started with pid [4005]
+[INFO] [mavic_controller-5]: process started with pid [4007]
+[INFO] [webots_controller_Mavic_2_PRO_3-6]: process started with pid [4009]
+[INFO] [mavic_controller-7]: process started with pid [4011]
+[INFO] [webots-8]: process started with pid [4013]
+[INFO] [ros2_supervisor.py-9]: process started with pid [4015]
+[webots_controller_Mavic_2_PRO_3-6] The specified robot (at /tmp/webots/root/1234/ipc/Mavic_2_PRO_3/extern) is not in the list of robots with <extern> controllers, retrying for another 50 seconds...
+[webots_controller_Mavic_2_PRO_1-2] The specified robot (at /tmp/webots/root/1234/ipc/Mavic_2_PRO_1/extern) is not in the list of robots with <extern> controllers, retrying for another 50 seconds...
+[webots_controller_Mavic_2_PRO_2-4] The specified robot (at /tmp/webots/root/1234/ipc/Mavic_2_PRO_2/extern) is not in the list of robots with <extern> controllers, retrying for another 50 seconds...
+[ros2_supervisor.py-9] The specified robot (at /tmp/webots/root/1234/ipc/Ros2Supervisor/extern) is not in the list of robots with <extern> controllers, retrying for another 50 seconds...
+[webots_controller_Mavic_2_PRO_1-2] [INFO] [1766070774.343183354] [Mavic_2_PRO_1]: Controller successfully connected to robot in Webots simulation.
+[webots_controller_Mavic_2_PRO_2-4] [INFO] [1766070774.343820389] [Mavic_2_PRO_2]: Controller successfully connected to robot in Webots simulation.
+[webots_controller_Mavic_2_PRO_3-6] [INFO] [1766070774.344470125] [Mavic_2_PRO_3]: Controller successfully connected to robot in Webots simulation.
 [mavic_controller-7] [DEBUG] [1766070774.516971484] [Mavic_2_PRO_3_Controller]: Time(nanoseconds=200000000, clock_type=ROS_TIME)
 [mavic_controller-5] [DEBUG] [1766070774.516992963] [Mavic_2_PRO_2_Controller]: Time(nanoseconds=200000000, clock_type=ROS_TIME)
 [mavic_controller-7] [DEBUG] [1766070774.517214773] [Mavic_2_PRO_3_Controller]: flag: (4.745658033751264, 7.469086167954433, 4.447123847096209)
@@ -13875,3 +13894,5 @@
 [mavic_controller-3] [DEBUG] [1766070790.218389655] [Mavic_2_PRO_1_Controller]: id: 1, vel: (0.21963336417861157, -0.6520238801515006, -0.10653273235036564)
 [mavic_controller-5] [DEBUG] [1766070790.218654766] [Mavic_2_PRO_2_Controller]: id: 2, gps: (5.982471750967604, -1.0199353840953236, 0.016823153087101833)
 [mavic_controller-5] [DEBUG] [1766070790.219012883] [Mavic_2_PRO_2_Controller]: id: 2, vel: (5.509551812691202e-07, 5.802816059115568e-07, 1.423378523866441e-12)
+[ros2_supervisor.py-9] [INFO] [1766070820.307545383] [Ros2Supervisor.Ros2Supervisor]: Ros2Supervisor is shutting down...
+
